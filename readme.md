@@ -41,7 +41,7 @@ DirVars is a list of templates to be replaced in your db/files.txt file. Each en
 
 ## Set up user access
 This just prevents unauthorized access within your network. Scores and marks are shared between all users.
-Use the -h parameter to hash a new password and store it in your sugoi.json file.
+Use the -u parameter to add or edit users in your sugoi.json file.
 
 ## Set your db/files.txt file
 Format:
