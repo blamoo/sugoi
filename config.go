@@ -25,7 +25,6 @@ type SugoiConfig struct {
 	SessionCookieKey     []byte
 	Users                map[string]string
 	HentagSearchLanguage string
-	// DefaultCoverFileName string
 }
 
 func (c SugoiConfig) CacheFile(elem ...string) string {
