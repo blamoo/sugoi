@@ -334,6 +334,197 @@ func main() {
 		RenderPage(w, r, "thingDetails.gohtml", data)
 	})
 
+	r.HandleFunc("/hentag.json", func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		if _, ret := HandleAuth(w, r); ret {
+			return
+		}
+
+		title := r.FormValue("title")
+
+		params := url.Values{}
+		params.Add("t", title)
+		params.Add("ila", "1,9")
+
+		url := fmt.Sprintf("https://hentag.com/public/api/vault-search?%s", params.Encode())
+		res, err := http.Get(url)
+
+		if err != nil {
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(JsonError{err.Error()})
+			return
+		}
+		defer res.Body.Close()
+
+		var result HentagVaultSearch
+		err = json.NewDecoder(res.Body).Decode(&result)
+		if err != nil {
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(JsonError{err.Error()})
+			return
+		}
+
+		type WorkResult struct {
+			Id    string              `json:"id"`
+			Title string              `json:"title"`
+			Cover string              `json:"cover"`
+			Tags  map[string][]string `json:"tags"`
+			Raw   string              `json:"raw"`
+		}
+
+		var data struct {
+			Works []WorkResult `json:"works"`
+		}
+
+		data.Works = make([]WorkResult, len(result.Works))
+		for k, v := range result.Works {
+			raw, _ := json.Marshal(v)
+
+			data.Works[k] = WorkResult{
+				Id:    v.ID,
+				Title: v.Title,
+				Cover: v.CoverImageURL,
+				Tags:  v.ToTags(),
+				Raw:   string(raw),
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
+	})
+
+	r.HandleFunc("/thing/searchMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+		if _, ret := HandleAuth(w, r); ret {
+			return
+		}
+
+		vars := mux.Vars(r)
+		vHash, _ := vars["hash"]
+
+		thing, err := NewThingFromHash(vHash)
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		var search string
+
+		if thing.CollectionIsEmpty() {
+			basename := filepath.Base(thing.File.PathKey)
+			ext := filepath.Ext(thing.File.PathKey)
+			search = strings.TrimSuffix(basename, ext)
+		} else {
+			search = thing.Title
+		}
+
+		data := struct {
+			Title  string
+			Thing  *Thing
+			Search string
+		}{
+			Title:  thing.Title,
+			Thing:  thing,
+			Search: search,
+		}
+
+		RenderPage(w, r, "thingSearchMetadata.gohtml", data)
+	})
+
+	r.HandleFunc("/thing/editMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		if _, ret := HandleAuth(w, r); ret {
+			return
+		}
+
+		vars := mux.Vars(r)
+		vHash, _ := vars["hash"]
+
+		thing, err := NewThingFromHash(vHash)
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		format := r.FormValue("format")
+
+		var metadata = thing.FileMetadataStatic
+
+		if format == "hentag" {
+			jsonStr := r.FormValue("json")
+
+			var work HentagVaultSearchWork
+			err = json.Unmarshal([]byte(jsonStr), &work)
+			if err != nil {
+				RenderError(w, r, err.Error())
+				return
+			}
+
+			work.FillMetadata(&metadata)
+		} else {
+			RenderError(w, r, "Invalid or unknown format")
+			return
+		}
+
+		data := struct {
+			Title    string
+			Thing    *Thing
+			Metadata FileMetadataStatic
+		}{
+			Title:    thing.Title,
+			Thing:    thing,
+			Metadata: metadata,
+		}
+
+		RenderPage(w, r, "thingEditMetadata.gohtml", data)
+	})
+
+	r.HandleFunc("/thing/saveMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+		var err error
+		if _, ret := HandleAuth(w, r); ret {
+			return
+		}
+
+		if r.Method != http.MethodPost {
+			w.WriteHeader(405)
+			RenderError(w, r, "method not allowed")
+		}
+
+		vars := mux.Vars(r)
+		vHash, _ := vars["hash"]
+
+		thing, err := NewThingFromHash(vHash)
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		thing.CoverImageUrl()
+		r.ParseForm()
+
+		thing.FileMetadataStatic, err = NewFileMetadataStaticFromForm(r.PostForm)
+		if err != nil {
+			w.WriteHeader(400)
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		err = thing.TrySaveStatic()
+		if err != nil {
+			w.WriteHeader(400)
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		err = thing.File.Reindex()
+		if err != nil {
+			w.WriteHeader(400)
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		http.Redirect(w, r, thing.DetailsUrl(), 302)
+	})
+
 	r.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 

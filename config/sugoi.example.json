@@ -8,6 +8,7 @@
     "SessionCookieName": "sugoi",
     "SessionCookieMaxAge": 3600,
     "SessionCookieKey": "CHANGEMEZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ==",
+    "HentagSearchLanguage": "1",
     "DirVars": {
         "MYREPO": "/path/to/myrepo"
     },

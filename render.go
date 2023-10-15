@@ -33,6 +33,11 @@ func RenderPage(w http.ResponseWriter, r *http.Request, name string, data interf
 			return template.HTML(BuildDiff())
 		}})
 
+		tmpl = tmpl.Funcs(template.FuncMap{"formatTime": func(t time.Time) template.HTML {
+			b, _ := t.MarshalText()
+			return template.HTML(b)
+		}})
+
 		tmpl, err = tmpl.ParseGlob("templates/*.gohtml")
 		if err != nil {
 			fmt.Fprint(w, err)

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+	{{template "e_head.gohtml" .}}
+</head>
+
+<body class="thingDetails">
+	{{template "e_header.gohtml" .}}
+	<div class="container">
+		<div class="mb-3">
+			<div class="row">
+				<div class="col-md-2 col-12">
+					<div class="card mb-3 flex-column">
+						<div class="card-body p-0 text-center">
+							<img src="{{.Thing.ThumbUrl .Thing.CoverImageUrl}}" class="img-fluid" alt="Cover" />
+						</div>
+					</div>
+				</div>
+				<div class="col-md-10 col-12">
+					<h2 class="text-110">
+						{{ .Thing.Title }}
+					</h2>
+				</div>
+			</div>
+				
+		</div>
+		<form id="searchForm" class="mb-3">
+			<div class="form-group">
+				<label>Search</label>
+				<input type="text" class="form-control" name="title" value="{{ .Search }}">
+			</div>			
+			<button type="submit" class="btn btn-primary">Search</button>
+		</form>
+
+		<div id="searchTarget" class="mb-3"></div>
+		
+		<template id="rowTemplate">
+			<div class="row">
+				<div class="col-md-2 col-12">
+					<div class="card mb-3 flex-column">
+						<div class="card-body p-0 text-center">
+							<img style="height: 128px" class="img-fluid cover" alt="Cover" />
+						</div>
+						<div class="card-footer d-flex justify-content-center">
+							<form method="GET" action={{ .Thing.EditMetadataUrl }}>
+								<input type="hidden" name="format" value="hentag">
+								<button type="submit" name="json" class="btn btn-sm btn-primary">Next</button>
+							</form>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-10 col-12">
+					<h2 class="text-110 title"></h2>
+					<table class="table table-sm table-bordered table-striped mb-3 tagsTable"></table>
+				</div>
+			</div>
+		</template>
+	</div>
+	
+	{{template "e_footer.gohtml" .}}
+	<script>
+		var $searchForm = $('#searchForm');
+		var $searchTarget = $('#searchTarget');
+		var rowTemplate = $('#rowTemplate').detach().html();
+
+		$searchForm.on('submit', function(e) {
+			e.preventDefault();
+			$searchTarget.html(loadingAlert());
+
+			var fd = new FormData($searchForm[0]);
+
+			$.ajax({
+				url: '/hentag.json',
+				method: 'POST',
+				data: fd,
+				processData: false,
+				contentType: false
+			})
+			.done(function (data) {
+				if (!('works' in data && 'length' in data.works)) {
+					return;
+				}
+				
+				var ret = [];
+
+				for (const work of data.works) {
+					var $tmp = $(rowTemplate);
+
+					$tmp.find('.cover').attr('src', work.cover);
+					$tmp.find('.title').html(work.title);
+					$tmp.find('[name=json]').attr('value', work.raw);
+
+					var $table = $tmp.find('.tagsTable');
+
+					for (const rowTitle in work.tags) {
+						
+						var $tagsTd = $('<td>');
+						for (const tag of work.tags[rowTitle]) {
+							$tagsTd.append($('<span class="badge badge-primary">').html(tag));
+							$tagsTd.append(' ');
+						}
+
+						var $tr = $('<tr>').html([
+							$('<td>').html(rowTitle),
+							$tagsTd,
+						]);
+
+						$table.append($tr);
+					}
+					
+					ret.push($tmp);
+				}
+				
+				$searchTarget.html(ret);
+			})
+			.fail(function () {
+				$searchTarget.html('Error');
+			});
+		});
+		$searchForm.trigger('submit');
+	</script>
+</body>
+</html>

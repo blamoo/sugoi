@@ -1,6 +1,6 @@
 module github.com/sugoi-reader/sugoi-reader
 
-go 1.21.1
+go 1.21
 
 require (
 	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
@@ -10,6 +10,7 @@ require (
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
 	golang.org/x/crypto v0.14.0
 	golang.org/x/image v0.13.0
+	golang.org/x/text v0.13.0
 )
 
 require (
@@ -54,5 +55,4 @@ require (
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/sys v0.13.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
 )

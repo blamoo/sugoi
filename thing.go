@@ -116,6 +116,10 @@ func (this *Thing) TrySaveDynamic() error {
 	return nil
 }
 
+func (this *Thing) CollectionIsEmpty() bool {
+	return strings.HasPrefix(this.Collection, "No Collection (")
+}
+
 func (this *Thing) TrySaveRating(rating int) error {
 	old := this.FileMetadataDynamic
 	this.Rating = rating
@@ -279,6 +283,18 @@ func (this *Thing) CollectionDetailsUrl() string {
 	return u.String()
 }
 
+func (this *Thing) SearchMetadataUrl() string {
+	return fmt.Sprintf("/thing/searchMetadata/%s", this.Hash())
+}
+
+func (this *Thing) SaveMetadataUrl() string {
+	return fmt.Sprintf("/thing/saveMetadata/%s", this.Hash())
+}
+
+func (this *Thing) EditMetadataUrl() string {
+	return fmt.Sprintf("/thing/editMetadata/%s", this.Hash())
+}
+
 func (this *Thing) FilledStarsRepeat(str string) string {
 	i := this.Rating
 
@@ -372,4 +388,29 @@ func (this *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 	}
 
 	return nil, closers, fmt.Errorf("Invalid file: %s", file)
+}
+
+func (this *Thing) TrySaveStatic() error {
+	var err error
+	metaFilePath := this.File.StaticMetaPath()
+	_, err = os.Stat(metaFilePath)
+	if os.IsNotExist(err) {
+		os.MkdirAll(path.Dir(metaFilePath), 0755)
+	}
+
+	f, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	e := json.NewEncoder(f)
+	e.SetIndent("", "\t")
+
+	err = e.Encode(this.FileMetadataStatic)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

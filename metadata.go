@@ -6,25 +6,28 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
 type FileMetadataStatic struct {
-	Id          int       `json:"id"`
-	Collection  string    `json:"collection"`
-	Title       string    `json:"title"`
-	Type        string    `json:"type"`
-	Tags        []string  `json:"tags"`
-	Language    string    `json:"language"`
-	Artist      string    `json:"artist"`
-	CreatedAt   time.Time `json:"created_at"`
-	Parody      string    `json:"parody"`
-	Magazine    string    `json:"magazine"`
-	Publisher   string    `json:"publisher"`
-	Description string    `json:"description"`
-	Pages       int       `json:"pages"`
-	Thumbnail   int       `json:"thumbnail"`
+	Id              int               `json:"id" schema:"id"`
+	Collection      string            `json:"collection" schema:"collection"`
+	Title           string            `json:"title" schema:"title"`
+	Type            string            `json:"type" schema:"type"`
+	Tags            []string          `json:"tags" schema:"tags"`
+	Language        string            `json:"language" schema:"language"`
+	Artist          string            `json:"artist" schema:"artist"`
+	CreatedAt       time.Time         `json:"created_at" schema:"created_at"`
+	Parody          string            `json:"parody" schema:"parody"`
+	Magazine        string            `json:"magazine" schema:"magazine"`
+	Publisher       string            `json:"publisher" schema:"publisher"`
+	Description     string            `json:"description" schema:"description"`
+	Pages           int               `json:"pages" schema:"pages"`
+	Thumbnail       int               `json:"thumbnail" schema:"thumbnail"`
+	MetadataSources map[string]string `json:"metadataSources" schema:"metadataSources"`
 }
 
 type FileMetadataDynamic struct {
@@ -72,6 +75,73 @@ func NewFileMetadataStaticFromFile(file string) (*FileMetadataStatic, error) {
 	}
 
 	return &ret, nil
+}
+
+func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) {
+	var ret FileMetadataStatic
+
+	for key, val := range form {
+		switch key {
+		case "language":
+			ret.Language = form.Get(key)
+			continue
+		case "artist":
+			ret.Artist = form.Get(key)
+			continue
+		case "magazine":
+			ret.Magazine = form.Get(key)
+			continue
+		case "publisher":
+			ret.Publisher = form.Get(key)
+			continue
+		case "collection":
+			ret.Collection = form.Get(key)
+			continue
+		case "parody":
+			ret.Parody = form.Get(key)
+			continue
+		case "title":
+			ret.Title = form.Get(key)
+			continue
+		case "description":
+			ret.Description = form.Get(key)
+			continue
+		case "created_at":
+			err := ret.CreatedAt.UnmarshalText([]byte(form.Get(key)))
+			if err != nil {
+				return ret, err
+			}
+			continue
+		}
+
+		split := strings.FieldsFunc(key, func(r rune) bool {
+			return r == '[' || r == ']'
+		})
+
+		if len(split) == 1 {
+			switch split[0] {
+			case "tags":
+				ret.Tags = val
+				continue
+			}
+		}
+
+		if len(split) == 2 {
+			switch split[0] {
+			case "metadataSources":
+				if ret.MetadataSources == nil {
+					ret.MetadataSources = make(map[string]string)
+				}
+
+				for _, id := range val {
+					ret.MetadataSources[split[1]] = id
+				}
+				continue
+			}
+		}
+	}
+
+	return ret, nil
 }
 
 func NewFileMetadataDynamicFromFile(file string) (*FileMetadataDynamic, error) {

@@ -13,17 +13,18 @@ import (
 var config SugoiConfig
 
 type SugoiConfig struct {
-	Debug               bool
-	CacheThumbnails     bool
-	CacheDir            string
-	DatabaseDir         string
-	ServerHost          string
-	ServerPort          int
-	DirVars             map[string]string
-	SessionCookieName   string
-	SessionCookieMaxAge int
-	SessionCookieKey    []byte
-	Users               map[string]string
+	Debug                bool
+	CacheThumbnails      bool
+	CacheDir             string
+	DatabaseDir          string
+	ServerHost           string
+	ServerPort           int
+	DirVars              map[string]string
+	SessionCookieName    string
+	SessionCookieMaxAge  int
+	SessionCookieKey     []byte
+	Users                map[string]string
+	HentagSearchLanguage string
 	// DefaultCoverFileName string
 }
 

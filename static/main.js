@@ -115,3 +115,7 @@ function updateBrandButton() {
 $(document).ready(function (e) {
     updateBrandButton();
 })
+
+function loadingAlert() {
+    return '<div class="alert alert-info">Loading...</div>';
+}

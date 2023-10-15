@@ -59,6 +59,10 @@
 					{{end}}
 				</table>
 				{{- end}}
+
+				{{ if .Thing.CollectionIsEmpty }}
+					<a class="btn btn-sm btn-secondary" href="{{.Thing.SearchMetadataUrl}}" title="Add/edit metadata"><i class="fas fa-search"></i> Find metadata</a>
+				{{ end }}
 			</div>
 		</div>
 		<div class="row">
@@ -93,7 +97,7 @@
 				.fail(function () {
 					$ratingTarget.html('Error');
 				});
-		})
+		});
 	</script>
 </body>
 

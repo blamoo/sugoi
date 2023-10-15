@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+	{{template "e_head.gohtml" .}}
+</head>
+
+<body class="thingDetails">
+	{{template "e_header.gohtml" .}}
+	<div class="container">
+		<form action="{{ .Thing.SaveMetadataUrl }}" method="POST" class="mb-3">
+			<div class="row">
+				<div class="col-md-2 col-12">
+					<div class="card mb-3 flex-column">
+						<div class="card-body p-0 text-center">
+							<img src="{{.Thing.ThumbUrl .Thing.CoverImageUrl}}" class="img-fluid" alt="Cover" />
+						</div>
+					</div>
+				</div>
+				<div class="col-md-10 col-12">
+					<div class="form-group">
+						<label>Filename</label>
+						<div>
+							{{ .Thing.File.PathKey }}
+						</div>
+					</div>
+					<div class="form-group">
+						<label>Metadata Sources</label>
+						<div>
+							{{ range $service, $id := .Metadata.MetadataSources }}
+								<span class="badge badge-primary">{{ $service }}:{{ $id }}</span>
+								<input type="hidden" name="metadataSources[{{ $service }}]" value="{{ $id }}">
+							{{end}}
+						</div>
+					</div>
+					<div class="form-group">
+						<label>Tags</label>
+						<div>
+							{{ range $tag := .Metadata.Tags }}
+								<span class="badge badge-primary">{{ $tag }}</span>
+								<input type="hidden" name="tags[]" value="{{ $tag }}">
+							{{end}}
+						</div>
+					</div>
+					<div class="form-group">
+						<label>Title</label>
+						<input type="text" class="form-control" name="title" value="{{ .Metadata.Title }}">
+					</div>
+					<div class="form-group">
+						<label>Collection</label>
+						<input type="text" class="form-control" name="collection" value="{{ .Metadata.Collection }}">
+					</div>
+					<div class="form-group">
+						<label>Language</label>
+						<input type="text" class="form-control" name="language" value="{{ .Metadata.Language }}">
+					</div>
+					<div class="form-group">
+						<label>Artist</label>
+						<input type="text" class="form-control" name="artist" value="{{ .Metadata.Artist }}">
+					</div>
+					<div class="form-group">
+						<label>Parody</label>
+						<input type="text" class="form-control" name="parody" value="{{ .Metadata.Parody }}">
+					</div>
+					<div class="form-group">
+						<label>Magazine</label>
+						<input type="text" class="form-control" name="magazine" value="{{ .Metadata.Magazine }}">
+					</div>
+					<div class="form-group">
+						<label>Publisher</label>
+						<input type="text" class="form-control" name="publisher" value="{{ .Metadata.Publisher }}">
+					</div>
+					<div class="form-group">
+						<label>Description</label>
+						<input type="text" class="form-control" name="description" value="{{ .Metadata.Description }}">
+					</div>
+					<div class="form-group">
+						<label>Created at</label>
+						<input type="text" class="form-control" name="created_at" value="{{ .Metadata.CreatedAt | formatTime }}">
+					</div>
+				</div>
+			</div>
+			
+			<div class="text-right">
+				<button type="submit" class="btn btn-primary">Save</button>
+			</div>
+		</form>
+	</div>
+	
+	{{template "e_footer.gohtml" .}}
+</body>
+</html>
