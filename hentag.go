@@ -74,7 +74,7 @@ func (v HentagVaultSearchWork) ToTags() map[string][]string {
 func (v HentagVaultSearchWork) FillMetadata(ret *FileMetadataStatic) {
 	caser := cases.Title(language.English)
 
-	ret.Title = caser.String(v.Title)
+	ret.Title = v.Title
 
 	ret.Tags = []string{}
 	for _, tag := range v.Parodies {
