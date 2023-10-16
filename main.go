@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -341,13 +342,21 @@ func main() {
 		}
 
 		title := r.FormValue("title")
+		language := r.FormValue("language")
 
-		params := url.Values{}
-		params.Add("t", title)
-		params.Add("ila", "1,9")
+		request, err := json.Marshal(HentagV1VaultSearchRequest{
+			Title:    title,
+			Language: language,
+		})
 
-		url := fmt.Sprintf("https://hentag.com/public/api/vault-search?%s", params.Encode())
-		res, err := http.Get(url)
+		if err != nil {
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(JsonError{err.Error()})
+			return
+		}
+
+		url := "https://hentag.com/api/v1/search/vault/title"
+		res, err := http.Post(url, "application/json", bytes.NewBuffer(request))
 
 		if err != nil {
 			w.WriteHeader(400)
@@ -356,7 +365,7 @@ func main() {
 		}
 		defer res.Body.Close()
 
-		var result HentagVaultSearch
+		var result HentagV1VaultSearchResponse
 		err = json.NewDecoder(res.Body).Decode(&result)
 		if err != nil {
 			w.WriteHeader(400)
@@ -365,27 +374,28 @@ func main() {
 		}
 
 		type WorkResult struct {
-			Id    string              `json:"id"`
-			Title string              `json:"title"`
-			Cover string              `json:"cover"`
-			Tags  map[string][]string `json:"tags"`
-			Raw   string              `json:"raw"`
+			Id        string              `json:"id"`
+			Title     string              `json:"title"`
+			Cover     string              `json:"cover"`
+			Tags      map[string][]string `json:"tags"`
+			Raw       string              `json:"raw"`
+			Locations []string            `json:"locations"`
 		}
 
 		var data struct {
 			Works []WorkResult `json:"works"`
 		}
 
-		data.Works = make([]WorkResult, len(result.Works))
-		for k, v := range result.Works {
+		data.Works = make([]WorkResult, len(result))
+		for k, v := range result {
 			raw, _ := json.Marshal(v)
 
 			data.Works[k] = WorkResult{
-				Id:    v.ID,
-				Title: v.Title,
-				Cover: v.CoverImageURL,
-				Tags:  v.ToTags(),
-				Raw:   string(raw),
+				Locations: v.Locations,
+				Title:     v.Title,
+				Cover:     v.CoverImageURL,
+				Tags:      v.ToTags(),
+				Raw:       string(raw),
 			}
 		}
 
@@ -407,24 +417,22 @@ func main() {
 			return
 		}
 
-		var search string
-
-		if thing.CollectionIsEmpty() {
-			basename := filepath.Base(thing.File.PathKey)
-			ext := filepath.Ext(thing.File.PathKey)
-			search = strings.TrimSuffix(basename, ext)
-		} else {
-			search = thing.Title
-		}
+		basename := filepath.Base(thing.File.PathKey)
+		ext := filepath.Ext(thing.File.PathKey)
+		search := strings.TrimSuffix(basename, ext)
 
 		data := struct {
-			Title  string
-			Thing  *Thing
-			Search string
+			Title            string
+			Thing            *Thing
+			Search           string
+			SearchLanguages  map[int]string
+			SelectedLanguage string
 		}{
-			Title:  thing.Title,
-			Thing:  thing,
-			Search: search,
+			Title:            thing.Title,
+			Thing:            thing,
+			Search:           search,
+			SearchLanguages:  HentagSearchLanguages,
+			SelectedLanguage: config.HentagSearchLanguage,
 		}
 
 		RenderPage(w, r, "thingSearchMetadata.gohtml", data)
@@ -449,10 +457,11 @@ func main() {
 
 		var metadata = thing.FileMetadataStatic
 
-		if format == "hentag" {
+		switch format {
+		case "hentag":
 			jsonStr := r.FormValue("json")
 
-			var work HentagVaultSearchWork
+			var work HentagV1Work
 			err = json.Unmarshal([]byte(jsonStr), &work)
 			if err != nil {
 				RenderError(w, r, err.Error())
@@ -460,7 +469,11 @@ func main() {
 			}
 
 			work.FillMetadata(&metadata)
-		} else {
+
+		case "edit":
+			metadata = thing.FileMetadataStatic
+
+		default:
 			RenderError(w, r, "Invalid or unknown format")
 			return
 		}

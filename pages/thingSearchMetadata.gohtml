@@ -23,18 +23,34 @@
 					</h2>
 				</div>
 			</div>
-				
+
 		</div>
 		<form id="searchForm" class="mb-3">
 			<div class="form-group">
 				<label>Search</label>
 				<input type="text" class="form-control" name="title" value="{{ .Search }}">
-			</div>			
+				<div>
+					<a href="#" id="advancedButton">+ Advanced search</a>
+				</div>
+			</div>
+			<div id="advancedTarget" style="display: none">
+				<div class="form-group">
+					<label>Language</label>
+					<select class="form-control" name="language">
+						<option value="">All</option>
+						{{$selected := .SelectedLanguage}}
+						{{range $key, $val := .SearchLanguages}}
+						<option value="{{$val}}" {{if eq $selected $val }} selected {{end}}>{{$val}}</option>
+						{{end}}
+					</select>
+				</div>
+			</div>
+		
 			<button type="submit" class="btn btn-primary">Search</button>
 		</form>
 
 		<div id="searchTarget" class="mb-3"></div>
-		
+
 		<template id="rowTemplate">
 			<div class="row">
 				<div class="col-md-2 col-12">
@@ -52,17 +68,26 @@
 				</div>
 				<div class="col-md-10 col-12">
 					<h2 class="text-110 title"></h2>
+					<p class="locations"></p>
 					<table class="table table-sm table-bordered table-striped mb-3 tagsTable"></table>
 				</div>
 			</div>
 		</template>
 	</div>
-	
+
 	{{template "e_footer.gohtml" .}}
 	<script>
 		var $searchForm = $('#searchForm');
 		var $searchTarget = $('#searchTarget');
 		var rowTemplate = $('#rowTemplate').detach().html();
+
+		var $advancedButton = $('#advancedButton');
+		var $advancedTarget = $('#advancedTarget');
+		$advancedButton.on('click', function (e) {
+			e.preventDefault();
+			$advancedTarget.show();
+			$advancedButton.remove();
+		});
 
 		$searchForm.on('submit', function(e) {
 			e.preventDefault();
@@ -81,24 +106,25 @@
 				if (!('works' in data && 'length' in data.works)) {
 					return;
 				}
-				
+
 				var ret = [];
 
 				for (const work of data.works) {
 					var $tmp = $(rowTemplate);
 
 					$tmp.find('.cover').attr('src', work.cover);
-					$tmp.find('.title').html(work.title);
+					var $title = $tmp.find('.title').html(work.title);
 					$tmp.find('[name=json]').attr('value', work.raw);
 
 					var $table = $tmp.find('.tagsTable');
 
 					for (const rowTitle in work.tags) {
-						
 						var $tagsTd = $('<td>');
 						for (const tag of work.tags[rowTitle]) {
-							$tagsTd.append($('<span class="badge badge-primary">').html(tag));
-							$tagsTd.append(' ');
+							$tagsTd.append([
+								$('<span class="badge badge-primary">').html(tag),
+								' ',
+							]);
 						}
 
 						var $tr = $('<tr>').html([
@@ -108,10 +134,22 @@
 
 						$table.append($tr);
 					}
-					
+
+					if ('locations' in work && 'length' in work.locations) {
+						
+						var $locations = $tmp.find('.locations');
+
+						for (const url of work.locations) {
+							$locations.append([
+								$('<a class="btn btn-sm btn-primary" target="_blank"><i class="fas fa-link"></a>').attr('href', url).attr('title', url),
+								' ',
+							]);
+						}
+					}
+
 					ret.push($tmp);
 				}
-				
+
 				$searchTarget.html(ret);
 			})
 			.fail(function () {

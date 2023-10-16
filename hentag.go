@@ -1,110 +1,144 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
-type Tag struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+type HentagV1VaultSearchRequest struct {
+	Title    string `json:"title,omitempty"`
+	Language string `json:"language,omitempty"`
 }
 
-type HentagVaultSearch struct {
-	Page        int                     `json:"page"`
-	PageSize    int                     `json:"pageSize"`
-	Works       []HentagVaultSearchWork `json:"works"`
-	Total       int                     `json:"total"`
-	RequestedAt int64                   `json:"requestedAt"`
+type HentagV1VaultSearchResponse []HentagV1Work
+type HentagV1Work struct {
+	Title         string   `json:"title"`
+	CoverImageURL string   `json:"coverImageUrl"`
+	Parodies      []string `json:"parodies,omitempty"`
+	Circles       []string `json:"circles,omitempty"`
+	Artists       []string `json:"artists,omitempty"`
+	MaleTags      []string `json:"maleTags,omitempty"`
+	FemaleTags    []string `json:"femaleTags,omitempty"`
+	OtherTags     []string `json:"otherTags,omitempty"`
+	Language      string   `json:"language"`
+	Category      string   `json:"category"`
+	PublishedOn   int64    `json:"publishedOn,omitempty"`
+	CreatedAt     int64    `json:"createdAt"`
+	LastModified  int64    `json:"lastModified"`
+	Locations     []string `json:"locations,omitempty"`
+	Characters    []string `json:"characters,omitempty"`
 }
 
-type HentagVaultSearchWork struct {
-	ID                string   `json:"id"`
-	Title             string   `json:"title"`
-	Parodies          []Tag    `json:"parodies"`
-	Circles           []Tag    `json:"circles"`
-	Artists           []Tag    `json:"artists"`
-	Characters        []Tag    `json:"characters"`
-	MaleTags          []Tag    `json:"maleTags"`
-	FemaleTags        []Tag    `json:"femaleTags"`
-	OtherTags         []Tag    `json:"otherTags"`
-	Language          int      `json:"language"`
-	Category          int      `json:"category"`
-	Locations         []string `json:"locations"`
-	CreatedAt         int64    `json:"createdAt"`
-	LastModified      int64    `json:"lastModified"`
-	PublishedOn       int64    `json:"publishedOn"`
-	CoverImageURL     string   `json:"coverImageUrl"`
-	Favorite          bool     `json:"favorite"`
-	IsControversial   bool     `json:"isControversial"`
-	IsDead            bool     `json:"isDead"`
-	IsPendingApproval bool     `json:"isPendingApproval"`
-}
-
-func (v HentagVaultSearchWork) ToTags() map[string][]string {
+func (v HentagV1Work) ToTags() map[string][]string {
 	ret := make(map[string][]string, 0)
 
 	for _, tag := range v.Parodies {
-		ret["Parodies"] = append(ret["Parodies"], tag.Name)
+		ret["Parodies"] = append(ret["Parodies"], tag)
 	}
 	for _, tag := range v.Circles {
-		ret["Circles"] = append(ret["Circles"], tag.Name)
+		ret["Circles"] = append(ret["Circles"], tag)
 	}
 	for _, tag := range v.Artists {
-		ret["Artists"] = append(ret["Artists"], tag.Name)
+		ret["Artists"] = append(ret["Artists"], tag)
 	}
 	for _, tag := range v.Characters {
-		ret["Characters"] = append(ret["Characters"], tag.Name)
+		ret["Characters"] = append(ret["Characters"], tag)
 	}
 	for _, tag := range v.MaleTags {
-		ret["Male Tags"] = append(ret["Male Tags"], tag.Name)
+		ret["Male Tags"] = append(ret["Male Tags"], tag)
 	}
 	for _, tag := range v.FemaleTags {
-		ret["Female Tags"] = append(ret["Female Tags"], tag.Name)
+		ret["Female Tags"] = append(ret["Female Tags"], tag)
 	}
 	for _, tag := range v.OtherTags {
-		ret["Other Tags"] = append(ret["Other Tags"], tag.Name)
+		ret["Other Tags"] = append(ret["Other Tags"], tag)
 	}
 
 	return ret
 }
 
-func (v HentagVaultSearchWork) FillMetadata(ret *FileMetadataStatic) {
+func (w HentagV1Work) FillMetadata(ret *FileMetadataStatic) {
 	caser := cases.Title(language.English)
 
-	ret.Title = v.Title
+	ret.Title = w.Title
 
 	ret.Tags = []string{}
-	for _, tag := range v.Parodies {
-		ret.Parody = caser.String(tag.Name)
+	for _, tag := range w.Parodies {
+		ret.Parody = caser.String(tag)
 		break
 	}
-	for _, tag := range v.Artists {
-		ret.Artist = caser.String(tag.Name)
+	for _, tag := range w.Artists {
+		ret.Artist = caser.String(tag)
 		break
 	}
-	for _, tag := range v.Characters {
-		ret.Tags = append(ret.Tags, caser.String(tag.Name))
+	for _, tag := range w.Characters {
+		ret.Tags = append(ret.Tags, caser.String(tag))
 	}
-	for _, tag := range v.MaleTags {
-		ret.Tags = append(ret.Tags, caser.String(tag.Name))
+	for _, tag := range w.MaleTags {
+		ret.Tags = append(ret.Tags, caser.String(tag))
 	}
-	for _, tag := range v.FemaleTags {
-		ret.Tags = append(ret.Tags, caser.String(tag.Name))
+	for _, tag := range w.FemaleTags {
+		ret.Tags = append(ret.Tags, caser.String(tag))
 	}
-	for _, tag := range v.OtherTags {
-		ret.Tags = append(ret.Tags, caser.String(tag.Name))
-	}
-
-	if v.PublishedOn > 0 {
-		ret.CreatedAt = time.UnixMilli(v.PublishedOn)
-	} else if v.CreatedAt > 0 {
-		ret.CreatedAt = time.UnixMilli(v.CreatedAt)
+	for _, tag := range w.OtherTags {
+		ret.Tags = append(ret.Tags, caser.String(tag))
 	}
 
-	ret.MetadataSources = map[string]string{
-		"Hentag": v.ID,
+	if w.PublishedOn > 0 {
+		ret.CreatedAt = time.UnixMilli(w.PublishedOn)
+	} else if w.CreatedAt > 0 {
+		ret.CreatedAt = time.UnixMilli(w.CreatedAt)
 	}
+
+	ret.MetadataSources = make(map[string]string)
+	for _, location := range w.Locations {
+		if strings.HasPrefix(location, "https://hentag.com/") {
+			ret.MetadataSources["HentagV1"] = location
+		}
+	}
+}
+
+var HentagSearchLanguages = map[int]string{
+	1:  "English",
+	2:  "Japanese",
+	3:  "Spanish",
+	4:  "Turkish",
+	5:  "Persian",
+	6:  "French",
+	7:  "German",
+	8:  "Russian",
+	9:  "Portuguese",
+	10: "Vietnamese",
+	11: "Chinese",
+	12: "Arabic",
+	13: "Italian",
+	14: "Polish",
+	15: "Greek",
+	16: "Indonesian",
+	17: "Dutch",
+	18: "Korean",
+	19: "Thai",
+	20: "Czech",
+	21: "Ukrainian",
+	22: "Hebrew",
+	23: "Swedish",
+	24: "Romanian",
+	25: "Hungarian",
+	26: "Danish",
+	27: "Serbian",
+	28: "Slovak",
+	29: "Bulgarian",
+	30: "Finnish",
+	31: "Croatian",
+	32: "Lithuanian",
+	33: "Norwegian",
+	34: "Hindi",
+	35: "Slovenian",
+	36: "Latvian",
+	37: "Estonian",
+	38: "Filipino",
+	-1: "Unknown",
 }

@@ -60,9 +60,8 @@
 				</table>
 				{{- end}}
 
-				{{ if .Thing.CollectionIsEmpty }}
-					<a class="btn btn-sm btn-secondary" href="{{.Thing.SearchMetadataUrl}}" title="Add/edit metadata"><i class="fas fa-search"></i> Find metadata</a>
-				{{ end }}
+				<a class="btn btn-sm btn-secondary" href="{{.Thing.EditMetadataUrl}}?format=edit"><i class="fas fa-edit"></i> Edit</a>
+				<a class="btn btn-sm btn-secondary" href="{{.Thing.SearchMetadataUrl}}"><i class="fas fa-search"></i> Find metadata</a>
 			</div>
 		</div>
 		<div class="row">

@@ -116,10 +116,6 @@ func (this *Thing) TrySaveDynamic() error {
 	return nil
 }
 
-func (this *Thing) CollectionIsEmpty() bool {
-	return strings.HasPrefix(this.Collection, "No Collection (")
-}
-
 func (this *Thing) TrySaveRating(rating int) error {
 	old := this.FileMetadataDynamic
 	this.Rating = rating
