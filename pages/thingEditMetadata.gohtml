@@ -18,70 +18,74 @@
 					</div>
 				</div>
 				<div class="col-md-10 col-12">
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Filename</label>
 						<div>
 							{{ .Thing.File.PathKey }}
 						</div>
 					</div>
-					<div class="form-group">
-						<label>Metadata Sources</label>
-						<div>
-							{{ range $service, $id := .Metadata.MetadataSources }}
-								<span class="badge badge-primary">{{ $service }}:{{ $id }}</span>
-								<input type="hidden" name="metadataSources[{{ $service }}]" value="{{ $id }}">
-							{{end}}
-						</div>
-					</div>
-					<div class="form-group">
-						<label>Tags</label>
-						<div>
-							{{ range $tag := .Metadata.Tags }}
-								<span class="badge badge-primary">{{ $tag }}</span>
-								<input type="hidden" name="tags[]" value="{{ $tag }}">
-							{{end}}
-						</div>
-					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Title</label>
 						<input type="text" class="form-control" name="title" value="{{ .Metadata.Title }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Collection</label>
 						<input type="text" class="form-control" name="collection" value="{{ .Metadata.Collection }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Language</label>
 						<input type="text" class="form-control" name="language" value="{{ .Metadata.Language }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Artist</label>
 						<input type="text" class="form-control" name="artist" value="{{ .Metadata.Artist }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Parody</label>
 						<input type="text" class="form-control" name="parody" value="{{ .Metadata.Parody }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Magazine</label>
 						<input type="text" class="form-control" name="magazine" value="{{ .Metadata.Magazine }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Publisher</label>
 						<input type="text" class="form-control" name="publisher" value="{{ .Metadata.Publisher }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Description</label>
 						<input type="text" class="form-control" name="description" value="{{ .Metadata.Description }}">
 					</div>
-					<div class="form-group">
+					<div class="mb-2">
 						<label>Created at</label>
 						<input type="text" class="form-control" name="created_at" value="{{ .Metadata.CreatedAt | formatTime }}">
+					</div>
+					<div class="mb-2">
+						<label>Tags</label>
+						<div>
+							<textarea rows="10" class="form-control fs-14px p-1" name="tagsText">
+								{{- range $tag := .Metadata.Tags -}}
+									{{- $tag -}}
+									{{- "\n" -}}
+								{{- end -}}
+							</textarea>
+							<code>Format: one tag per line</code>
+						</div>
+					</div>
+					<div class="mb-2">
+						<label>Metadata Sources</label>
+						<textarea class="form-control fs-14px p-1" name="metadataText">
+							{{- range $service, $id := .Metadata.MetadataSources -}}
+								{{- $service -}}:{{- $id -}}
+								{{- "\n" -}}
+							{{- end -}}
+						</textarea>
+						<code>Format: one 'key:value' pair per line</code>
 					</div>
 				</div>
 			</div>
 			
-			<div class="text-right">
+			<div class="text-end">
 				<button type="submit" class="btn btn-primary">Save</button>
 			</div>
 		</form>

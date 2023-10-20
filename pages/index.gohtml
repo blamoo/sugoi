@@ -17,7 +17,7 @@
 							<input type="text" class="form-control" name="q" value="{{.Search}}" />
 						</div>
 						<div class="col">
-							<select class="form-control" id="orderSelect" name="order">
+							<select class="form-select" id="orderSelect" name="order">
 								{{$order := .Order}}
 								{{range .OrderAvailable }}
 									<option value="{{.Key}}"{{if eq $order .Key }} selected {{end}}>{{.Value}}</option>
@@ -28,20 +28,15 @@
 				</div>
 				<div class="card-footer p-2 d-flex flex-row justify-content-between">
 					<div>
-						<button class="btn btn-primary mr-2" type="submit">Filter</button>
-						<!-- button class="btn btn-primary mr-2" title="Random" name="random" value="1" type="submit">
-							<i class="fa fa-dice"></i>
-						</button -->
-					</div>
+						<button class="btn btn-primary mr-2" type="submit">Filter</button></div>
 					
 					<fieldset id="displayTypes">
-						<div class="btn-group btn-group-toggle" data-toggle="buttons">
-							<label class="btn btn-primary">
-								<input type="radio" name="format" value="covers" {{if eq .Format "covers" }} checked {{end}}> Covers
-							</label>
-							<label class="btn btn-primary">
-								<input type="radio" name="format" value="table" {{if eq .Format "table" }} checked {{end}}> Table
-							</label>
+						<div class="btn-group">
+							<input type="radio" class="btn-check" name="format" autocomplete="off" value="covers" id="covers" {{if eq .Format "covers" }} checked {{end}}>
+							<label class="btn btn-primary" for="covers">Covers</label>
+						
+							<input type="radio" class="btn-check" name="format" autocomplete="off" value="table" id="table" {{if eq .Format "table" }} checked {{end}}>
+							<label class="btn btn-primary" for="table">Table</label>
 						</div>
 					</fieldset>
 				</div>
@@ -74,7 +69,7 @@
 						<td class="align-middle">
 							<a href="{{.ReadUrl}}" class="d-inline-block">{{.Title}}</a>
 							{{if ne .Marks 0}}
-								<span class="badge badge-pill badge-success">{{.Marks}}</span>
+								<span class="badge rounded-pill bg-success">{{.Marks}}</span>
 							{{end}}
 						</td>
 						<td class="text-center text-nowrap">
@@ -83,8 +78,8 @@
 							{{end}}
 						</td>
 						<td class="text-center text-nowrap">
-							{{- noescape (.FilledStarsRepeat "<i class=\"fas fa-star text-gold\"></i>") -}}
-							{{- noescape (.EmptyStarsRepeat "<i class=\"far fa-star\"></i>") -}}
+							{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
+							{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
 						</td>
 						<td class="text-center">
 							{{.Pages}}
@@ -104,7 +99,7 @@
 					<h2 class="card-header p-1 small text-center">
 						{{.Title}}
 						{{if ne .Marks 0}}
-							<span class="badge badge-pill badge-success">{{.Marks}}</span>
+							<span class="badge rounded-pill bg-success">{{.Marks}}</span>
 						{{end}}
 					</h2>
 					<div class="card-body p-0 d-flex justify-content-center">
@@ -118,8 +113,8 @@
 								<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary">Details</a>
 							</div>
 							<div class="m-1">
-								{{- noescape (.FilledStarsRepeat "<i class=\"fas fa-star text-gold\"></i>") -}}
-								{{- noescape (.EmptyStarsRepeat "<i class=\"far fa-star\"></i>") -}}
+								{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
+								{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
 							</div>
 						</div>
 					</div>
@@ -141,7 +136,6 @@
 	<script>
 		$(document).ready(function() {
 			var locationFixed = new URLSearchParams(location.search);
-			locationFixed.delete('random')
 			localStorage.setItem("index.lastUrl", locationFixed.toString());
 			resetBrandButton();
 

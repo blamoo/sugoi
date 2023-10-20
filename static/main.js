@@ -65,7 +65,7 @@ $.fn.appendRatingForm = function (id, initialRating) {
                 return;
             }
             $rateForm.find('button').hide();
-            $rateForm.append('<i class="fa fa-spinner fa-spin loader"></i>');
+            $rateForm.append('<i class="fa-solid fa-spinner fa-spin loader"></i>');
             var iv = e.originalEvent.submitter.value
 
             var fd = new FormData(e.target);

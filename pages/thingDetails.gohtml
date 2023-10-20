@@ -23,7 +23,7 @@
 				<h2 class="text-110">
 					{{.Thing.Title}}
 					{{if ne .Thing.Marks 0}}
-						<span class="badge badge-pill badge-success">{{.Thing.Marks}}</span>
+						<span class="badge rounded-pill bg-success">{{.Thing.Marks}}</span>
 					{{end}}
 				</h2>
 				{{if .Thing.Collection}}
@@ -50,9 +50,7 @@
 						</td>
 						<td>
 							{{ range $type }}
-							
-							<a class="badge badge-primary" href="{{.Url}}">{{.Label}}</a>
-							
+							<a class="badge bg-primary text-decoration-none" href="{{.Url}}">{{.Label}}</a>
 							{{ end }}
 						</td>
 					</tr>
@@ -60,8 +58,8 @@
 				</table>
 				{{- end}}
 
-				<a class="btn btn-sm btn-secondary" href="{{.Thing.EditMetadataUrl}}?format=edit"><i class="fas fa-edit"></i> Edit</a>
-				<a class="btn btn-sm btn-secondary" href="{{.Thing.SearchMetadataUrl}}"><i class="fas fa-search"></i> Find metadata</a>
+				<a class="btn btn-sm btn-secondary" href="{{.Thing.EditMetadataUrl}}?format=edit"><i class="fa-solid fa-edit"></i> Edit</a>
+				<a class="btn btn-sm btn-secondary" href="{{.Thing.SearchMetadataUrl}}"><i class="fa-solid fa-search"></i> Find metadata</a>
 			</div>
 		</div>
 		<div class="row">

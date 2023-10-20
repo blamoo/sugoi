@@ -534,7 +534,6 @@ func main() {
 			RenderError(w, r, err.Error())
 			return
 		}
-
 		http.Redirect(w, r, thing.DetailsUrl(), 302)
 	})
 

@@ -80,63 +80,70 @@ func NewFileMetadataStaticFromFile(file string) (*FileMetadataStatic, error) {
 func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) {
 	var ret FileMetadataStatic
 
-	for key, val := range form {
+	for key := range form {
 		switch key {
 		case "language":
 			ret.Language = form.Get(key)
-			continue
+
 		case "artist":
 			ret.Artist = form.Get(key)
-			continue
+
 		case "magazine":
 			ret.Magazine = form.Get(key)
-			continue
+
 		case "publisher":
 			ret.Publisher = form.Get(key)
-			continue
+
 		case "collection":
 			ret.Collection = form.Get(key)
-			continue
+
 		case "parody":
 			ret.Parody = form.Get(key)
-			continue
+
 		case "title":
 			ret.Title = form.Get(key)
-			continue
+
 		case "description":
 			ret.Description = form.Get(key)
-			continue
+
 		case "created_at":
 			err := ret.CreatedAt.UnmarshalText([]byte(form.Get(key)))
 			if err != nil {
 				return ret, err
 			}
-			continue
-		}
 
-		split := strings.FieldsFunc(key, func(r rune) bool {
-			return r == '[' || r == ']'
-		})
+		case "tagsText":
+			tags := strings.Split(form.Get(key), "\n")
+			for _, tag := range tags {
+				tag = strings.TrimSpace(tag)
 
-		if len(split) == 1 {
-			switch split[0] {
-			case "tags":
-				ret.Tags = val
-				continue
+				if len(tag) == 0 {
+					continue
+				}
+
+				ret.Tags = append(ret.Tags, tag)
 			}
-		}
 
-		if len(split) == 2 {
-			switch split[0] {
-			case "metadataSources":
-				if ret.MetadataSources == nil {
-					ret.MetadataSources = make(map[string]string)
+		case "metadataText":
+			tags := strings.Split(form.Get(key), "\n")
+			ret.MetadataSources = make(map[string]string)
+
+			for _, kv := range tags {
+				kv = strings.TrimSpace(kv)
+
+				if len(kv) == 0 {
+					continue
 				}
 
-				for _, id := range val {
-					ret.MetadataSources[split[1]] = id
+				split := strings.SplitN(kv, ":", 2)
+				if len(split) != 2 {
+					return ret, fmt.Errorf("Invalid metadata %s (expected format: 'key:value')", kv)
 				}
-				continue
+
+				split[0] = strings.TrimSpace(split[0])
+				split[1] = strings.TrimSpace(split[1])
+
+				ret.MetadataSources[split[0]] = split[1]
 			}
 		}
 	}
