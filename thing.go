@@ -334,6 +334,32 @@ func (this *Thing) ListFiles() ([]string, error) {
 func (this *Thing) ListFilesRaw() ([]string, error) {
 	var files []string
 
+	fname := config.CacheFile("thing/file", this.Hash(), ".files")
+	os.MkdirAll(path.Dir(fname), 0755)
+
+	f, err := os.Open(fname)
+
+	if err != nil {
+		defer f.Close()
+	}
+
+	if !os.IsNotExist(err) {
+		b, err := io.ReadAll(f)
+		if err == nil {
+			split := strings.Split(string(b), "\n")
+
+			for _, line := range split {
+				line = strings.TrimSpace(line)
+				if len(line) == 0 {
+					continue
+				}
+				files = append(files, line)
+			}
+		}
+		return files, nil
+	}
+	debugPrintf("File list cache miss: %s", fname)
+
 	compressedFileName := this.File.RealLocation()
 
 	fsys, err := archiver.FileSystem(nil, compressedFileName)
@@ -359,6 +385,20 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 	})
 
 	sort.Strings(files)
+
+	f.Close()
+
+	f, err = os.Create(fname)
+	if err == nil {
+		defer f.Close()
+
+		filesJoin := strings.Join(files, "\n")
+		n, err := io.WriteString(f, filesJoin)
+		if err == nil {
+			debugPrintf("File list cache write (%d bytes): %s", n, fname)
+		}
+	}
+
 	return files, nil
 }
 
