@@ -40,6 +40,9 @@ func (this *ReindexJob) Start() error {
 				break
 			}
 
+			thing, err := NewThingFromHash(file.Hash)
+			_, err = thing.ListFilesRaw()
+
 			err = file.ReindexIntoBatch(batch)
 			if err != nil {
 				this.Error++
