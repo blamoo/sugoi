@@ -46,7 +46,12 @@
 		{{if .Things}}
 
 		<div class="d-flex justify-content-between">
-			{{template "pagination" .}}
+			{{ template "pagination" . }}
+			{{ if eq .Hits 1 }}
+				1 result
+			{{ else }}
+				{{ .Hits }} results
+			{{ end }}
 		</div>
 
 		{{if eq .Format "table"}}
@@ -108,11 +113,9 @@
 						</a>
 					</div>
 					<div class="card-footer p-1">
-						<div class="d-flex justify-content-between">
-							<div class="btn-group">
-								<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary">Details</a>
-							</div>
-							<div class="m-1">
+						<div class="d-flex flex-wrap justify-content-between">
+							<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary text-center w-100">Details</a>
+							<div class="m-1  text-center w-100">
 								{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
 								{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
 							</div>

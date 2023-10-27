@@ -99,6 +99,7 @@ func main() {
 			OrderAvailable OrderFields
 			Order          string
 			Search         string
+			Hits           uint64
 		}{
 			Title:          "Home",
 			HasNext:        false,
@@ -183,6 +184,7 @@ func main() {
 			RenderError(w, r, err.Error())
 			return
 		}
+		data.Hits = searchResults.Total
 
 		if fDebug == "raw" {
 			w.Header().Set("Content-Type", "application/json")

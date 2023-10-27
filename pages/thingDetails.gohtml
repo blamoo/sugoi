@@ -9,8 +9,8 @@
 	{{template "e_header.gohtml" .}}
 	<div class="container">
 		<div class="row">
-			<div class="col-md-3 col-12">
-				<div class="card mb-3 flex-column">
+			<div class="col-md-3 col-12 mb-3">
+				<div class="card flex-column">
 					<div class="card-body p-0 text-center">
 						<a href="{{.Thing.ReadUrl}}" class="d-inline-block">
 							<img src="{{.Thing.ThumbUrl .Thing.CoverImageUrl}}" class="img-fluid" alt="Cover" />
@@ -19,7 +19,7 @@
 					<div class="card-footer d-flex justify-content-center" id="ratingTarget"></div>
 				</div>
 			</div>
-			<div class="col-md-9 col-12">
+			<div class="col-md-9 col-12 mb-3">
 				<h2 class="text-110">
 					{{.Thing.Title}}
 					{{if ne .Thing.Marks 0}}

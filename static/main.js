@@ -39,7 +39,7 @@ $.fn.appendRatingForm = function (id, initialRating) {
     var $this = this;
 
     return new Promise(function (resolve, reject) {
-        var $rateForm = $('<form method="post">').attr("action", '/thing/' + id + '/rating.json?toggle=true');
+        var $rateForm = $('<form class="text-nowrap" method="post">').attr("action", '/thing/' + id + '/rating.json?toggle=true');
 
         function updateButtons(stars) {
             var buttons = [];
