@@ -171,7 +171,9 @@ func main() {
 		search.From = data.Page * pageSize
 		search.Fields = []string{"*"}
 
-		search.SortBy([]string{data.Order})
+		if data.Order != "" {
+			search.SortBy([]string{data.Order})
+		}
 
 		if fDebug == "query" {
 			w.Header().Set("Content-Type", "application/json")

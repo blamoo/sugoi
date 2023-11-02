@@ -22,6 +22,8 @@ func InitializeOrder() {
 		"pages":      "Pages",
 	}
 
+	orderFields = append(orderFields, OrderField{"", "Score"})
+
 	for key, label := range fields {
 		orderFields = append(orderFields, OrderField{key, fmt.Sprintf("%s Asc", label)})
 		rkey := fmt.Sprintf("-%s", key)
