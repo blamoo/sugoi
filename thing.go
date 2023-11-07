@@ -216,7 +216,7 @@ func (this *Thing) FileUrlPrefix() string {
 }
 
 func (this *Thing) FileUrl(f string) string {
-	return fmt.Sprintf("%s/%s", this.FileUrlPrefix(), strings.TrimLeft(f, "/"))
+	return fmt.Sprintf("%s/%s", this.FileUrlPrefix(), url.PathEscape(strings.TrimLeft(f, "/")))
 }
 
 func (this *Thing) ReadFileUrl(i int) string {
@@ -416,7 +416,7 @@ func (this *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 		ret, err := fsys.Open(file)
 
 		if err != nil {
-			return nil, closers, fmt.Errorf("Couldn't read file %s from %s", compressedFileName, file)
+			return nil, closers, fmt.Errorf("Couldn't read file %s from %s", file, compressedFileName)
 		}
 		closers = append(closers, ret)
 
