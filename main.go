@@ -713,11 +713,12 @@ func main() {
 
 			type Response struct {
 				JsonResponse
+				Marks  int
 				Rating int
 			}
 			var response Response
 			response.Rating = thing.Rating
-
+			response.Marks = thing.Marks
 			response.Message = fmt.Sprintf("Marks: %d", thing.Marks)
 
 			json.NewEncoder(w).Encode(response)
@@ -764,11 +765,12 @@ func main() {
 
 			type Response struct {
 				JsonResponse
+				Marks  int
 				Rating int
 			}
 			var response Response
 			response.Rating = thing.Rating
-
+			response.Marks = thing.Marks
 			response.Message = fmt.Sprintf("Marks: %d", thing.Marks)
 
 			json.NewEncoder(w).Encode(response)

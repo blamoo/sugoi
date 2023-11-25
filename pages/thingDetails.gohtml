@@ -22,9 +22,6 @@
 			<div class="col-md-9 col-12 mb-3">
 				<h2 class="text-110">
 					{{.Thing.Title}}
-					{{if ne .Thing.Marks 0}}
-						<span class="badge rounded-pill bg-success">{{.Thing.Marks}}</span>
-					{{end}}
 				</h2>
 				{{if .Thing.Collection}}
 				<p>
@@ -40,7 +37,6 @@
 					</div>
 				{{end}}
 				
-				{{if .Thing.Tags -}}
 				<table class="table table-sm table-bordered table-striped mb-3">
 					
 					{{ range $typeName, $type := .Thing.SortedTags }}
@@ -55,8 +51,15 @@
 						</td>
 					</tr>
 					{{end}}
+					<td class="text-right">Marks</td>
+					<td>
+						<div class="input-group input-group-sm">
+							<button class="btn btn-primary" type="button" id="subMark"><i class="fa-solid fa-minus"></i></button>
+							<span class="input-group-text border border-secondary bg-secondary text-white" id="marks">{{.Thing.Marks}}</span>
+							<button class="btn btn-primary" type="button" id="addMark"><i class="fa-solid fa-plus"></i></button>
+						</div>
+					</td>
 				</table>
-				{{- end}}
 
 				<a class="btn btn-sm btn-secondary" href="{{.Thing.EditMetadataUrl}}?format=edit"><i class="fa-solid fa-edit"></i> Edit</a>
 				<a class="btn btn-sm btn-secondary" href="{{.Thing.SearchMetadataUrl}}"><i class="fa-solid fa-search"></i> Find metadata</a>
@@ -94,6 +97,30 @@
 				.fail(function () {
 					$ratingTarget.html('Error');
 				});
+
+			var $subMark = $('#subMark');
+			var $addMark = $('#addMark');
+			var $marks = $('#marks');
+
+			$addMark.click(function(e) {
+				e.preventDefault();
+				$marks.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
+
+				thingAddMark(hash)
+					.done(function (data) {
+						$marks.html(data.Marks);
+					});
+			});
+
+			$subMark.click(function(e) {
+				e.preventDefault();
+				$marks.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
+
+				thingSubMark(hash)
+					.done(function (data) {
+						$marks.html(data.Marks);
+					});
+			});
 		});
 	</script>
 </body>
