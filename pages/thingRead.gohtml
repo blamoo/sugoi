@@ -33,16 +33,19 @@
 				<button id="fullscreen" type="button" class="btn btn-sm btn-primary" title="Fullscreen">
 					<i class="fa-solid fa-expand"></i>
 				</button>
-				<div class="dropdown">
-					<button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Slideshow">
-						<i class="fa-regular fa-clock"></i>
-					</button>
-					<ul class="dropdown-menu dropdown-menu-end" id="slideshowButtons">
-						<li><button data-delay="5" class="dropdown-item" type="button">5 seconds</button></li>
-						<li><button data-delay="10" class="dropdown-item" type="button">10 seconds</button></li>
-						<li><button data-delay="30" class="dropdown-item" type="button">30 seconds</button></li>
-					</ul>
-				</div>
+				<button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Slideshow">
+					<i class="fa-regular fa-clock"></i>
+				</button>
+				<ul class="dropdown-menu dropdown-menu-end" id="slideshowButtons">
+					<li><button data-delay="5" class="dropdown-item" type="button">5 seconds</button></li>
+					<li><button data-delay="10" class="dropdown-item" type="button">10 seconds</button></li>
+					<li><button data-delay="30" class="dropdown-item" type="button">30 seconds</button></li>
+				</ul>
+			</div>
+			<div class="btn-group mx-1 mb-4">
+				<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#helpModal" title="Shortcuts">
+					<i class="fa-regular fa-circle-question"></i>
+				</button>
 			</div>
 		</div>
 	</div>
@@ -53,8 +56,91 @@
 		</div>
 		<div id="fullscreenPageCounter"></div>
 	</div>
-	
+
 	{{template "e_footer.gohtml" .}}
+
+	<div class="modal modal-lg fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="helpModalLabel">Keyboard shortcuts</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<table class="table w-100">
+						<tr>
+							<th>Key</th>
+							<th>Action</th>
+						</tr>
+						<tr>
+							<td class="text-nowrap">
+								<kbd>0</kbd>
+								<kbd>1</kbd>
+								<kbd>2</kbd>
+								<kbd>3</kbd>
+								<kbd>4</kbd>
+								<kbd>5</kbd>
+							</td>
+							<td>Set score to 0~5 (press twice)</td>
+						</tr>
+						<tr>
+							<td><kbd>M</kbd></td>
+							<td>Add 1 mark</td>
+						</tr>
+						<tr>
+							<td><kbd>N</kbd></td>
+							<td>Remove 1 mark</td>
+						</tr>
+						<tr>
+							<td><kbd>C</kbd></td>
+							<td>Set cover of the gallery to the current page (press twice)</td>
+						</tr>
+						<tr>
+							<td><kbd>F</kbd></td>
+							<td>Enable fullscreen mode</td>
+						</tr>
+						<tr>
+							<td><kbd>→</kbd></td>
+							<td>Go to next page</td>
+						</tr>
+						<tr>
+							<td><kbd>←</kbd></td>
+							<td>Go to previous page</td>
+						</tr>
+						<tr>
+							<td><kbd>Home</kbd></td>
+							<td>Go to first page</td>
+						</tr>
+						<tr>
+							<td><kbd>End</kbd></td>
+							<td>Go to last page</td>
+						</tr>
+						<tr>
+							<td><kbd>S</kbd></td>
+							<td>Start/stop slideshow (10 seconds)</td>
+						</tr>
+						<tr>
+							<td><kbd>Space</kbd></td>
+							<td>Stop slideshow</td>
+						</tr>
+						<tr>
+							<td><kbd>Esc</kbd></td>
+							<td>Exit fullscreen mode and stop slideshow</td>
+						</tr>
+						<tr>
+							<td><kbd>+</kbd></td>
+							<td>Add 1 second to slideshow delay</td>
+						</tr>
+						<tr>
+							<td><kbd>-</kbd></td>
+							<td>Subtract 1 second from slideshow delay</td>
+						</tr>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<script>
 		var hash = {{ .Hash }};
 		var pages = {{ .Files }};
@@ -62,7 +148,7 @@
 		var backUrl = {{ .Thing.DetailsUrl }};
 		var title = {{ .Thing.Title }};
 		var page = {{ .Page }};
-		
+
 		$(document).ready(function () {
 			var $title = $('title');
 			var $target = $('#target');
@@ -79,18 +165,18 @@
 			var $slideshowButtons = $('#slideshowButtons');
 			var $navAll = $('#navPrev,#navNext,#navFirst,#navLast');
 			var $fullscreen = $('#fullscreen');
-			
+
 			setPage(page);
 			function setPage(i) {
 				if (!(i in pages)) {
 					stopSlideshow();
 					return false;
 				}
-				
+
 				page = i | 0;
-				
+
 				var expectedPrefix = prefix + "/" + page;
-				
+
 				if (location.pathname != expectedPrefix) {
 					if (location.pathname === prefix) {
 						history.replaceState({ page: page }, "", expectedPrefix);
@@ -98,74 +184,74 @@
 						history.pushState({ page: page }, "", expectedPrefix);
 					}
 				}
-				
+
 				$targetImg.show();
 				$targetImg.attr('src', pages[page]);
 				var pageText = "Page " + (page + 1) + "/" + pages.length;
 				$fullscreenPageCounter.html((page + 1) + "/" + pages.length);
 				$navCurr.html(pageText)
 				$title.html("sugoi - " + title + " " + pageText);
-				
+
 				var prevPage = page - 1;
 				if (prevPage < 0) {
 					$navPrev.addClass('disabled').attr('href', 'javascript:;').removeData('page')
 				} else {
 					$navPrev.removeClass('disabled').attr('href', prefix + "/" + prevPage).data('page', prevPage)
 				}
-				
+
 				var nextPage = page + 1;
 				if (nextPage >= pages.length) {
 					$navNext.addClass('disabled').attr('href', 'javascript:;').removeData('page')
 				} else {
 					$navNext.removeClass('disabled').attr('href', prefix + "/" + nextPage).data('page', nextPage)
 				}
-				
+
 				var firstPage = 0;
 				if (page <= firstPage) {
 					$navFirst.addClass('disabled').attr('href', 'javascript:;').removeData('page')
 				} else {
 					$navFirst.removeClass('disabled').attr('href', prefix + "/" + firstPage).data('page', firstPage)
 				}
-				
+
 				var lastPage = pages.length - 1;
 				if (page >= lastPage) {
 					$navLast.addClass('disabled').attr('href', 'javascript:;').removeData('page')
 				} else {
 					$navLast.removeClass('disabled').attr('href', prefix + "/" + lastPage).data('page', lastPage)
 				}
-				
+
 				if (nextPage in pages) {
 					preloadImage(pages[nextPage]);
 				}
-				
+
 				if (prevPage in pages) {
 					preloadImage(pages[prevPage]);
 				}
-				
+
 				resetSlideshow();
 				return true;
 			}
-			
+
 			$navAll.click(function (e) {
 				e.preventDefault();
-				
+
 				var nextPage = $(e.currentTarget).data('page');
-				
+
 				setPage(nextPage);
 			});
-			
+
 			window.addEventListener('popstate', function (event) {
 				if ('page' in event.state) {
 					setPage(event.state.page);
 				}
 			});
-			
+
 			var prevKey = null;
 			window.addEventListener('keydown', function (event) {
 				if (event.isComposing) {
 					return;
 				}
-				
+
 				switch (event.key) {
 					case "0":
 					case "1":
@@ -185,7 +271,7 @@
 						toaster("Press " + event.key + " again to set the rating to " + event.key + " stars");
 					}
 					break;
-					
+
 					case "m":
 					thingAddMark(hash)
 					.done(function (data) {
@@ -195,7 +281,7 @@
 						toaster(data.responseJSON.Error);
 					});
 					break;
-					
+
 					case "n":
 					thingSubMark(hash)
 					.done(function (data) {
@@ -205,7 +291,7 @@
 						toaster(data.responseJSON.Error);
 					});
 					break;
-					
+
 					case "c":
 					if (event.key == prevKey) {
 						setThingCover(hash, pages[page])
@@ -219,48 +305,48 @@
 						toaster("Press " + event.key + " again to set the cover to " + pages[page]);
 					}
 					break;
-					
+
 					case "s":
 					toggleSlideshow(10 * 1000);
 					event.preventDefault();
 					break;
-					
+
 					case "t":
 					toaster("This is a toast!");
 					event.preventDefault();
 					break;
-					
+
 					case "f":
 					goFullScreen();
 					event.preventDefault();
 					break;
-					
+
 					case "Home":
 					setPage(0);
 					event.preventDefault();
 					break;
-					
+
 					case "End":
 					setPage(pages.length - 1);
 					event.preventDefault();
 					break;
-					
+
 					case "ArrowLeft":
 					setPage(page - 1);
 					event.preventDefault();
 					break;
-					
+
 					case "ArrowRight":
 					setPage(page + 1);
 					event.preventDefault();
 					break;
-					
+
 					case " ":
 					case "Escape":
 					stopSlideshow();
 					event.preventDefault();
 					break;
-					
+
 					case "=":
 					case "+":
 					if (slideshowIsOn) {
@@ -271,7 +357,7 @@
 					resetSlideshow();
 					event.preventDefault();
 					break;
-					
+
 					case "-":
 					if (slideshowIsOn) {
 						slideshowMs -= 1000;
@@ -282,31 +368,31 @@
 					event.preventDefault();
 					break;
 				}
-				
+
 				prevKey = event.key;
 			});
-			
+
 			$targetImg.click(function (e) {
 				e.preventDefault();
 				var halfWidth = e.currentTarget.width / 2;
-				
+
 				if (e.originalEvent.offsetX > halfWidth) {
 					setPage(page + 1);
 				} else {
 					setPage(page - 1);
 				}
 			});
-			
+
 			$slideshowButtons.on('click', 'button', function (e) {
 				e.preventDefault();
 				var delay = $(e.currentTarget).data('delay') * 1000;
 				startSlideshow(delay);
 			});
-			
+
 			var slideshowIsOn = false;
 			var slideshowInterval = null;
 			var slideshowMs = null;
-			
+
 			function toggleSlideshow(delayInMs) {
 				if (slideshowIsOn) {
 					stopSlideshow();
@@ -314,40 +400,40 @@
 					startSlideshow(delayInMs);
 				}
 			}
-			
+
 			function resetSlideshow() {
 				if (!slideshowIsOn) {
 					return;
 				}
-				
+
 				if (page + 1 == pages.length) {
 					stopSlideshow();
 					return;
 				}
-				
+
 				if (slideshowInterval) {
 					clearInterval(slideshowInterval);
 					slideshowInterval = null;
 				}
 				$fullscreenProgressBar.stop().css({ width: "0%" }).animate({ width: "100%" }, slideshowMs, "linear");
-				
+
 				slideshowInterval = setTimeout(function () {
 					if (!setPage(page + 1)) {
 						stopSlideshow();
 					}
 				}, slideshowMs);
 			}
-			
+
 			function startSlideshow(delayInMs) {
 				if (page + 1 == pages.length) {
 					return;
 				}
-				
+
 				slideshowMs = delayInMs;
 				slideshowIsOn = true;
 				resetSlideshow();
 			}
-			
+
 			function stopSlideshow() {
 				if (slideshowInterval) {
 					clearInterval(slideshowInterval);
@@ -357,16 +443,16 @@
 				slideshowMs = null;
 				slideshowIsOn = false;
 			}
-			
+
 			function goFullScreen() {
 				$target[0].requestFullscreen();
 			}
-			
+
 			$fullscreen.click(function (e) {
 				e.preventDefault();
 				goFullScreen();
 			});
-			
+
 			function toaster(msg, timeout) {
 				timeout = timeout || 5000;
 				var $message = $('<div class="alert alert-primary" role="alert">').html(msg);
@@ -378,5 +464,5 @@
 			});
 		</script>
 	</body>
-	
+
 	</html>
