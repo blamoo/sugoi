@@ -241,8 +241,16 @@ func (this *Thing) ReadUrl() string {
 func (this *Thing) SortedTags() map[string][]SearchTerm {
 	ret := make(map[string][]SearchTerm)
 
-	if len(this.Artist) != 0 {
-		ret["Artist"] = append(ret["Artist"], NewSearchTerm("artist", this.Artist))
+	for _, artist := range this.Artist {
+		if len(artist) != 0 {
+			ret["Artist"] = append(ret["Artist"], NewSearchTerm("artist", artist))
+		}
+	}
+
+	for _, circle := range this.Circle {
+		if len(circle) != 0 {
+			ret["Circle"] = append(ret["Circle"], NewSearchTerm("circle", circle))
+		}
 	}
 
 	if len(this.Language) != 0 {
@@ -253,8 +261,10 @@ func (this *Thing) SortedTags() map[string][]SearchTerm {
 		ret["Parody"] = append(ret["Parody"], NewSearchTerm("parody", this.Parody))
 	}
 
-	if len(this.Magazine) != 0 {
-		ret["Magazine"] = append(ret["Magazine"], NewSearchTerm("magazine", this.Magazine))
+	for _, magazine := range this.Magazine {
+		if len(magazine) != 0 {
+			ret["Magazine"] = append(ret["Magazine"], NewSearchTerm("magazine", magazine))
+		}
 	}
 
 	if len(this.Publisher) != 0 {

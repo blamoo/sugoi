@@ -66,6 +66,9 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	TagsMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("tags", TagsMapping)
 
+	CircleMapping := bleve.NewTextFieldMapping()
+	thingMapping.AddFieldMappingsAt("circle", CircleMapping)
+
 	ArtistMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("artist", ArtistMapping)
 

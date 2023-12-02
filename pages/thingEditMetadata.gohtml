@@ -38,7 +38,15 @@
 					</div>
 					<div class="mb-2">
 						<label>Artist</label>
-						<input type="text" class="form-control" name="artist" value="{{ .Metadata.Artist }}">
+						<div>
+							<textarea rows="10" class="form-control fs-14px p-1" name="artistText">
+								{{- range $artist := .Metadata.Artist -}}
+									{{- $artist -}}
+									{{- "\n" -}}
+								{{- end -}}
+							</textarea>
+							<code>Format: one artist per line</code>
+						</div>
 					</div>
 					<div class="mb-2">
 						<label>Parody</label>
@@ -46,7 +54,15 @@
 					</div>
 					<div class="mb-2">
 						<label>Magazine</label>
-						<input type="text" class="form-control" name="magazine" value="{{ .Metadata.Magazine }}">
+						<div>
+							<textarea rows="10" class="form-control fs-14px p-1" name="magazineText">
+								{{- range $magazine := .Metadata.Magazine -}}
+									{{- $magazine -}}
+									{{- "\n" -}}
+								{{- end -}}
+							</textarea>
+							<code>Format: one magazine per line</code>
+						</div>
 					</div>
 					<div class="mb-2">
 						<label>Publisher</label>

@@ -17,12 +17,13 @@ type FileMetadataStatic struct {
 	Collection      string            `json:"collection" schema:"collection"`
 	Title           string            `json:"title" schema:"title"`
 	Type            string            `json:"type" schema:"type"`
-	Tags            []string          `json:"tags" schema:"tags"`
+	Tags            StringArray       `json:"tags" schema:"tags"`
 	Language        string            `json:"language" schema:"language"`
-	Artist          string            `json:"artist" schema:"artist"`
+	Artist          StringArray       `json:"artist" schema:"artist"`
+	Circle          StringArray       `json:"circle" schema:"circle"`
 	CreatedAt       time.Time         `json:"created_at" schema:"created_at"`
 	Parody          string            `json:"parody" schema:"parody"`
-	Magazine        string            `json:"magazine" schema:"magazine"`
+	Magazine        StringArray       `json:"magazine" schema:"magazine"`
 	Publisher       string            `json:"publisher" schema:"publisher"`
 	Description     string            `json:"description" schema:"description"`
 	Pages           int               `json:"pages" schema:"pages"`
@@ -85,11 +86,11 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 		case "language":
 			ret.Language = form.Get(key)
 
-		case "artist":
-			ret.Artist = form.Get(key)
+		case "artistText":
+			ret.Artist.SetFromTextArea(form.Get(key))
 
-		case "magazine":
-			ret.Magazine = form.Get(key)
+		case "magazineText":
+			ret.Magazine.SetFromTextArea(form.Get(key))
 
 		case "publisher":
 			ret.Publisher = form.Get(key)
@@ -113,16 +114,7 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 			}
 
 		case "tagsText":
-			tags := strings.Split(form.Get(key), "\n")
-			for _, tag := range tags {
-				tag = strings.TrimSpace(tag)
-
-				if len(tag) == 0 {
-					continue
-				}
-
-				ret.Tags = append(ret.Tags, tag)
-			}
+			ret.Tags.SetFromTextArea(form.Get(key))
 
 		case "metadataText":
 			tags := strings.Split(form.Get(key), "\n")

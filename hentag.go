@@ -71,8 +71,7 @@ func (w HentagV1Work) FillMetadata(ret *FileMetadataStatic) {
 		break
 	}
 	for _, tag := range w.Artists {
-		ret.Artist = caser.String(tag)
-		break
+		ret.Artist = append(ret.Artist, caser.String(tag))
 	}
 	for _, tag := range w.Characters {
 		ret.Tags = append(ret.Tags, caser.String(tag))
@@ -85,6 +84,10 @@ func (w HentagV1Work) FillMetadata(ret *FileMetadataStatic) {
 	}
 	for _, tag := range w.OtherTags {
 		ret.Tags = append(ret.Tags, caser.String(tag))
+	}
+	for _, tag := range w.Circles {
+		ret.Circle = append(ret.Circle, caser.String(tag))
+		break
 	}
 
 	if w.PublishedOn > 0 {
