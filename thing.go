@@ -386,7 +386,12 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 			return nil
 		}
 
+		// #TODO move this list of extensions to config file
 		if strings.Index(path, ".yaml") != -1 {
+			return nil
+		}
+
+		if strings.Index(path, ".txt") != -1 {
 			return nil
 		}
 
