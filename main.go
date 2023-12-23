@@ -639,6 +639,7 @@ func main() {
 
 		if r.Method == http.MethodPost {
 			fFile := r.FormValue("file")
+			fFile, err = url.PathUnescape(fFile)
 
 			if err != nil {
 				w.WriteHeader(400)
