@@ -81,7 +81,7 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	DescriptionMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("description", DescriptionMapping)
 
-	IdMapping := bleve.NewTextFieldMapping()
+	IdMapping := bleve.NewNumericFieldMapping()
 	thingMapping.AddFieldMappingsAt("id", IdMapping)
 
 	LanguageMapping := bleve.NewTextFieldMapping()
