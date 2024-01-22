@@ -37,6 +37,9 @@
 						
 							<input type="radio" class="btn-check" name="format" autocomplete="off" value="table" id="table" {{if eq .Format "table" }} checked {{end}}>
 							<label class="btn btn-primary" for="table">Table</label>
+						
+							<input type="radio" class="btn-check" name="format" autocomplete="off" value="full" id="full" {{if eq .Format "full" }} checked {{end}}>
+							<label class="btn btn-primary" for="full">Full</label>
 						</div>
 					</fieldset>
 				</div>
@@ -96,6 +99,68 @@
 					{{end}}
 				</tbody>
 			</table>
+		{{else if eq .Format "full"}}
+			{{range .Things}}
+				<div class="row">
+					<div class="col-md-3 col-12 mb-3">
+						<div class="card flex-column">
+							<div class="card-body p-0 text-center">
+								<a href="{{.ReadUrl}}" class="d-inline-block">
+									<img src="{{.ThumbUrl .CoverImageUrl}}" class="img-fluid" alt="Cover" />
+								</a>
+							</div>
+							<div class="card-footer d-flex flex-wrap justify-content-between p-1">
+								<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary text-center w-100">Details</a>
+								<div class="m-1  text-center w-100">
+									{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
+									{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-9 col-12 mb-3">
+						<h2 class="text-110">
+							{{.Title}}
+							{{if ne .Marks 0}}
+								<span class="badge rounded-pill bg-success">{{.Marks}}</span>
+							{{end}}
+						</h2>
+						{{if .Collection}}
+						<p>
+							<a class="btn btn-sm btn-primary" href="{{.CollectionDetailsUrl}}">{{.Collection}}</a>
+						</p>
+						{{end}}
+
+						{{if .Description}}
+							<div class="card mb-3">
+								<div class="card-body">
+									{{.Description}}
+								</div>
+							</div>
+						{{end}}
+						
+						<table class="table table-sm table-bordered table-striped mb-3">
+							
+							{{ range $typeName, $type := .SortedTags }}
+							<tr>
+								<td class="text-right">
+									{{$typeName}}
+								</td>
+								<td>
+									{{ range $type }}
+									<a class="badge bg-primary text-decoration-none" href="{{.Url}}">{{.Label}}</a>
+									{{ end }}
+								</td>
+							</tr>
+							{{end}}
+							<tr>
+								<td class="text-right">Pages</td>
+								<td>{{.Pages}}</td>
+							</tr>
+						</table>
+					</div>
+				</div>
+			{{end}}
 		{{else}}
 		<div class="row">
 			{{range .Things}}

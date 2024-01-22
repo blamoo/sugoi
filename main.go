@@ -128,6 +128,10 @@ func main() {
 			data.Format = "table"
 			pageSize = 50
 
+		case "full":
+			data.Format = "full"
+			pageSize = 50
+
 		// case "covers":
 		default:
 			data.Format = "covers"

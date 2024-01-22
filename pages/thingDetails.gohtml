@@ -51,14 +51,20 @@
 						</td>
 					</tr>
 					{{end}}
-					<td class="text-right">Marks</td>
-					<td>
-						<div class="input-group input-group-sm">
-							<button class="btn btn-primary" type="button" id="subMark"><i class="fa-solid fa-minus"></i></button>
-							<span class="input-group-text border border-secondary bg-secondary text-white" id="marks">{{.Thing.Marks}}</span>
-							<button class="btn btn-primary" type="button" id="addMark"><i class="fa-solid fa-plus"></i></button>
-						</div>
-					</td>
+					<tr>
+						<td class="text-right">Marks</td>
+						<td>
+							<div class="input-group input-group-sm">
+								<button class="btn btn-primary" type="button" id="subMark"><i class="fa-solid fa-minus"></i></button>
+								<span class="input-group-text border border-secondary bg-secondary text-white" id="marks">{{.Thing.Marks}}</span>
+								<button class="btn btn-primary" type="button" id="addMark"><i class="fa-solid fa-plus"></i></button>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td class="text-right">Pages</td>
+						<td>{{.Thing.Pages}}</td>
+					</tr>
 				</table>
 
 				<a class="btn btn-sm btn-secondary" href="{{.Thing.EditMetadataUrl}}?format=edit"><i class="fa-solid fa-edit"></i> Edit</a>
