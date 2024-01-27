@@ -395,6 +395,10 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 			return nil
 		}
 
+		if strings.Index(path, ".db") != -1 {
+			return nil
+		}
+
 		files = append(files, path)
 		return nil
 	})
