@@ -198,12 +198,6 @@ func main() {
 			return
 		}
 
-		if fDebug == "json" {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(data)
-			return
-		}
-
 		for _, v := range searchResults.Hits {
 			thing, err := NewThingFromHash(v.ID)
 			if err != nil {
@@ -228,6 +222,12 @@ func main() {
 			q.Set("page", strconv.Itoa(data.Page-1))
 			u := url.URL{Path: r.URL.Path, RawQuery: q.Encode()}
 			data.PagePrevUrl = u.String()
+		}
+
+		if fDebug == "json" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+			return
 		}
 
 		RenderPage(w, r, "index.gohtml", data)
