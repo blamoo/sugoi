@@ -198,6 +198,12 @@ func main() {
 			return
 		}
 
+		if fDebug == "json" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+			return
+		}
+
 		for _, v := range searchResults.Hits {
 			thing, err := NewThingFromHash(v.ID)
 			if err != nil {
