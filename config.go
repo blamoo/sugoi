@@ -19,6 +19,7 @@ type SugoiConfig struct {
 	DatabaseDir          string
 	ServerHost           string
 	ServerPort           int
+	MaxConcurrency       int
 	DirVars              map[string]string
 	SessionCookieName    string
 	SessionCookieMaxAge  int
@@ -84,6 +85,9 @@ func InitializeConfig() error {
 	// if config.DefaultCoverFileName == "" {
 	// 	config.DefaultCoverFileName = "01.png"
 	// }
+	if config.MaxConcurrency <= 0 {
+		return fmt.Errorf("MaxConcurrency should be greater than 0")
+	}
 
 	if config.SessionCookieMaxAge <= 0 {
 		return fmt.Errorf("SessionMaxAge should be greater than 0")

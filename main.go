@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/bamiaux/rez"
 	"github.com/blevesearch/bleve/v2"
@@ -27,8 +28,8 @@ import (
 	"image/jpeg"
 	_ "image/png"
 
-	"golang.org/x/crypto/ssh/terminal"
 	_ "golang.org/x/image/webp"
+	"golang.org/x/term"
 )
 
 var configPath string
@@ -70,9 +71,27 @@ func main() {
 
 	InitializeOrder()
 
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
-	r.HandleFunc("/files.json", func(w http.ResponseWriter, r *http.Request) {
+	semaphore := make(chan struct{}, config.MaxConcurrency)
+
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			semaphore <- struct{}{}
+			defer func() {
+				<-semaphore
+			}()
+
+			next.ServeHTTP(w, r)
+		})
+	})
+
+	router.HandleFunc("/sleep", func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(5 * time.Second)
+		w.Write([]byte("OK"))
+	})
+
+	router.HandleFunc("/files.json", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -82,7 +101,7 @@ func main() {
 		return
 	})
 
-	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -233,7 +252,7 @@ func main() {
 		RenderPage(w, r, "index.gohtml", data)
 	})
 
-	r.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
 		data := struct {
 			Title string
 			Error string
@@ -292,7 +311,7 @@ func main() {
 		RenderPage(w, r, "login.gohtml", data)
 	})
 
-	r.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			session, _ := sessionStore.Get(r, config.SessionCookieName)
 			session.Values["authenticated"] = false
@@ -303,7 +322,7 @@ func main() {
 		http.Redirect(w, r, "/login", 302)
 	})
 
-	r.HandleFunc("/thing/details/{hash:[a-z0-9]+}.json", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}.json", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -322,7 +341,7 @@ func main() {
 		return
 	})
 
-	r.HandleFunc("/thing/details/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -349,7 +368,7 @@ func main() {
 		RenderPage(w, r, "thingDetails.gohtml", data)
 	})
 
-	r.HandleFunc("/hentag.json", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/hentag.json", func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if _, ret := HandleAuth(w, r); ret {
 			return
@@ -417,7 +436,7 @@ func main() {
 		json.NewEncoder(w).Encode(data)
 	})
 
-	r.HandleFunc("/thing/searchMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/searchMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -452,7 +471,7 @@ func main() {
 		RenderPage(w, r, "thingSearchMetadata.gohtml", data)
 	})
 
-	r.HandleFunc("/thing/editMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/editMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if _, ret := HandleAuth(w, r); ret {
 			return
@@ -505,7 +524,7 @@ func main() {
 		RenderPage(w, r, "thingEditMetadata.gohtml", data)
 	})
 
-	r.HandleFunc("/thing/saveMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/saveMetadata/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
 		var err error
 		if _, ret := HandleAuth(w, r); ret {
 			return
@@ -551,7 +570,7 @@ func main() {
 		http.Redirect(w, r, thing.DetailsUrl(), 302)
 	})
 
-	r.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		_, ret := CheckAuth(w, r)
@@ -627,7 +646,7 @@ func main() {
 		json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 	})
 
-	r.HandleFunc("/thing/{hash:[a-z0-9]+}/cover.json", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/cover.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		_, ret := CheckAuth(w, r)
@@ -693,7 +712,7 @@ func main() {
 		json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 	})
 
-	r.HandleFunc("/thing/{hash:[a-z0-9]+}/addMark.json", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/addMark.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		_, ret := CheckAuth(w, r)
@@ -745,7 +764,7 @@ func main() {
 		json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 	})
 
-	r.HandleFunc("/thing/{hash:[a-z0-9]+}/subMark.json", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/subMark.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		_, ret := CheckAuth(w, r)
@@ -797,7 +816,7 @@ func main() {
 		json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 	})
 
-	r.HandleFunc("/thing/read/{hash:[a-z0-9]+}{page:/?[0-9]*}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/read/{hash:[a-z0-9]+}{page:/?[0-9]*}", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -834,7 +853,7 @@ func main() {
 		RenderPage(w, r, "thingRead.gohtml", data)
 	})
 
-	r.HandleFunc("/thing/file/{hash:[a-z0-9]+}/{file:.+}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/thing/file/{hash:[a-z0-9]+}/{file:.+}", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -924,7 +943,7 @@ func main() {
 	})
 
 	var reindexJob ReindexJob
-	r.HandleFunc("/system", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/system", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -1000,7 +1019,7 @@ func main() {
 		RenderPage(w, r, "system.gohtml", data)
 	})
 
-	r.HandleFunc("/allFiles", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/allFiles", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -1009,7 +1028,7 @@ func main() {
 		json.NewEncoder(w).Encode(filePointers.ByHash)
 	})
 
-	r.HandleFunc("/pending", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/pending", func(w http.ResponseWriter, r *http.Request) {
 		if _, ret := HandleAuth(w, r); ret {
 			return
 		}
@@ -1043,16 +1062,16 @@ func main() {
 		json.NewEncoder(w).Encode(ret)
 	})
 
-	r.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/x-icon")
 		http.ServeFile(w, r, "static/favicon.ico")
 	})
 
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	fmt.Println("uwu")
 	fmt.Printf("Listening on http://%s:%d\n", config.ServerHost, config.ServerPort)
-	err = http.ListenAndServe(fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort), r)
+	err = http.ListenAndServe(fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort), router)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(4)
@@ -1065,7 +1084,7 @@ func ManageUsers() {
 	fmt.Print("Username: ")
 	fmt.Scanln(&username)
 	fmt.Print("Password: ")
-	password, err := terminal.ReadPassword(int(syscall.Stdin))
+	password, err := term.ReadPassword(int(syscall.Stdin))
 	fmt.Print("**************")
 	fmt.Println()
 

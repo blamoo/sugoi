@@ -10,6 +10,7 @@ require (
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
 	golang.org/x/crypto v0.22.0
 	golang.org/x/image v0.15.0
+	golang.org/x/term v0.19.0
 	golang.org/x/text v0.14.0
 )
 
@@ -56,5 +57,4 @@ require (
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/term v0.19.0 // indirect
 )

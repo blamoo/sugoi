@@ -5,6 +5,7 @@
     "DatabaseDir": "./db/",
     "ServerHost": "0.0.0.0",
     "ServerPort": 80,
+    "MaxConcurrency": 2,
     "SessionCookieName": "sugoi",
     "SessionCookieMaxAge": 3600,
     "SessionCookieKey": "CHANGEMEZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ==",
