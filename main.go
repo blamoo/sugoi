@@ -17,7 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/bamiaux/rez"
 	"github.com/blevesearch/bleve/v2"
@@ -84,11 +83,6 @@ func main() {
 
 			next.ServeHTTP(w, r)
 		})
-	})
-
-	router.HandleFunc("/sleep", func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(5 * time.Second)
-		w.Write([]byte("OK"))
 	})
 
 	router.HandleFunc("/files.json", func(w http.ResponseWriter, r *http.Request) {
