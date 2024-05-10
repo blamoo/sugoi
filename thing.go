@@ -11,10 +11,10 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/facette/natsort"
 	"github.com/mholt/archiver/v4"
 )
 
@@ -373,6 +373,7 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 	compressedFileName := this.File.RealLocation()
 
 	fsys, err := archiver.FileSystem(nil, compressedFileName)
+
 	if err != nil {
 		return nil, err
 	}
@@ -403,18 +404,21 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 		return nil
 	})
 
-	sort.Strings(files)
+	natsort.Sort(files)
+	// sort.Strings(files)
 
 	f.Close()
 
-	f, err = os.Create(fname)
-	if err == nil {
-		defer f.Close()
-
-		filesJoin := strings.Join(files, "\n")
-		n, err := io.WriteString(f, filesJoin)
+	if false {
+		f, err = os.Create(fname)
 		if err == nil {
-			debugPrintf("File list cache write (%d bytes): %s", n, fname)
+			defer f.Close()
+
+			filesJoin := strings.Join(files, "\n")
+			n, err := io.WriteString(f, filesJoin)
+			if err == nil {
+				debugPrintf("File list cache write (%d bytes): %s", n, fname)
+			}
 		}
 	}
 

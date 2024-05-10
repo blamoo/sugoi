@@ -5,13 +5,14 @@ go 1.22
 require (
 	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
 	github.com/blevesearch/bleve/v2 v2.4.0
+	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.2.2
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
-	golang.org/x/crypto v0.22.0
-	golang.org/x/image v0.15.0
-	golang.org/x/term v0.19.0
-	golang.org/x/text v0.14.0
+	golang.org/x/crypto v0.23.0
+	golang.org/x/image v0.16.0
+	golang.org/x/term v0.20.0
+	golang.org/x/text v0.15.0
 )
 
 require (
@@ -56,5 +57,5 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 )
