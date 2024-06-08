@@ -7,6 +7,20 @@ import (
 	"time"
 )
 
+var buildStr string
+var buildTime time.Time
+
+func init() {
+	fileStat, err := os.Stat(os.Args[0])
+
+	if err != nil {
+		buildStr = "-"
+	}
+
+	buildTime = fileStat.ModTime()
+	buildStr = buildTime.Format("2006-01-02 15:04")
+}
+
 const (
 	Nanosecond  time.Duration = 1
 	Microsecond               = 1000 * Nanosecond
@@ -35,20 +49,6 @@ func Years(d time.Duration) float64 {
 	hour := d / Year
 	nsec := d % Year
 	return float64(hour) + float64(nsec)/(60*60*24*30*12*1e9)
-}
-
-var buildStr string
-var buildTime time.Time
-
-func InitializeBuildTime() {
-	fileStat, err := os.Stat(os.Args[0])
-
-	if err != nil {
-		buildStr = "-"
-	}
-
-	buildTime = fileStat.ModTime()
-	buildStr = buildTime.Format("2006-01-02 15:04")
 }
 
 func BuildDiff() string {

@@ -43,7 +43,6 @@ func main() {
 	user := flag.Bool("u", false, "Adds a new user or changes de password of an existing user on your config file.")
 	flag.Parse()
 
-	InitializeBuildTime()
 	err = InitializeConfig()
 	if err != nil {
 		fmt.Println(err)
