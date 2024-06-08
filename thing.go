@@ -250,7 +250,7 @@ func (t *Thing) SortedTags() map[string][]SearchTerm {
 	}
 
 	if t.IdSource != "" {
-		ret["IdSource"] = append(ret["IdSource"], NewSearchTerm("idsource", t.IdSource))
+		ret["IdSource"] = append(ret["Id source"], NewSearchTerm("idsource", t.IdSource))
 	}
 
 	for _, artist := range t.Artist {
