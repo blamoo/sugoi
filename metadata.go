@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -43,12 +45,46 @@ type FileMetadata struct {
 	FileMetadataDynamic
 }
 
+func CreateMetadataEmptyFile(file string) error {
+	var err error
+
+	dir := path.Dir(file)
+	err = os.MkdirAll(dir, 0755)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.WriteString("{}")
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Created empty metadata file %s\n", file)
+	return nil
+}
+
 func NewFileMetadataStaticFromFile(file string) (*FileMetadataStatic, error) {
 	var err error
 	var stat fs.FileInfo
 	var mode fs.FileMode
 
 	stat, err = os.Stat(file)
+
+	if errors.Is(err, os.ErrNotExist) {
+		err = CreateMetadataEmptyFile(file)
+		if err != nil {
+			return nil, err
+		}
+
+		return &FileMetadataStatic{}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +165,7 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 
 				split := strings.SplitN(kv, ":", 2)
 				if len(split) != 2 {
-					return ret, fmt.Errorf("Invalid metadata %s (expected format: 'key:value')", kv)
+					return ret, fmt.Errorf("invalid metadata %s (expected format: 'key:value')", kv)
 				}
 
 				split[0] = strings.TrimSpace(split[0])
@@ -149,6 +185,16 @@ func NewFileMetadataDynamicFromFile(file string) (*FileMetadataDynamic, error) {
 	var mode fs.FileMode
 
 	stat, err = os.Stat(file)
+
+	if errors.Is(err, os.ErrNotExist) {
+		err = CreateMetadataEmptyFile(file)
+		if err != nil {
+			return nil, err
+		}
+
+		return &FileMetadataDynamic{}, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -177,34 +223,34 @@ func NewFileMetadataDynamicFromFile(file string) (*FileMetadataDynamic, error) {
 	return &ret, nil
 }
 
-func (this *FileMetadataStatic) FillEmptyFields(file *FilePointer) {
+func (fms *FileMetadataStatic) FillEmptyFields(file *FilePointer) {
 	if file == nil {
 		return
 	}
 
-	if len(this.Title) == 0 {
-		this.Title = file.PathKey
+	if len(fms.Title) == 0 {
+		fms.Title = file.PathKey
 	}
 
-	if len(this.Collection) == 0 {
-		this.Collection = fmt.Sprintf("No Collection (%s)", file.DirHash())
+	if len(fms.Collection) == 0 {
+		fms.Collection = fmt.Sprintf("No Collection (%s)", file.DirHash())
 	}
 
-	if this.Pages == 0 {
+	if fms.Pages == 0 {
 		p, ok := filePointers.ByHash[file.Hash]
 
 		if ok {
 			t := Thing{File: p}
 			f, err := t.ListFilesRaw()
 			if err == nil {
-				log.Printf("Dynamic page count for %s\n", file.Key)
-				this.Pages = len(f)
+				// log.Printf("Dynamic page count for %s\n", file.Key)
+				fms.Pages = len(f)
 			}
 		}
 	}
 }
 
-func (this *FileMetadataDynamic) FillEmptyFields(file *FilePointer) {
+func (fms *FileMetadataDynamic) FillEmptyFields(file *FilePointer) {
 	// if len(this.Cover) == 0 {
 	// 	this.Cover = config.DefaultCoverFileName
 	// }

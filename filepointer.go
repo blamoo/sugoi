@@ -30,18 +30,18 @@ func NewFilePointerList() FilePointerList {
 	}
 }
 
-func (this *FilePointerList) Clear() {
-	this.List = make([]*FilePointer, 0)
-	this.ByKey = make(map[string]*FilePointer)
-	this.ByPathKey = make(map[string]*FilePointer)
-	this.ByHash = make(map[string]*FilePointer)
+func (fpl *FilePointerList) Clear() {
+	fpl.List = make([]*FilePointer, 0)
+	fpl.ByKey = make(map[string]*FilePointer)
+	fpl.ByPathKey = make(map[string]*FilePointer)
+	fpl.ByHash = make(map[string]*FilePointer)
 }
 
-func (this *FilePointerList) Push(n *FilePointer) {
-	this.List = append(this.List, n)
-	this.ByKey[n.Key] = n
-	this.ByPathKey[n.PathKey] = n
-	this.ByHash[n.Hash] = n
+func (fpl *FilePointerList) Push(n *FilePointer) {
+	fpl.List = append(fpl.List, n)
+	fpl.ByKey[n.Key] = n
+	fpl.ByPathKey[n.PathKey] = n
+	fpl.ByHash[n.Hash] = n
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,8 +67,8 @@ func NewFilePointer(key string) (*FilePointer, error) {
 	return &ret, nil
 }
 
-func (this *FilePointer) BuildPathKey() string {
-	p := this.Key
+func (fp *FilePointer) BuildPathKey() string {
+	p := fp.Key
 
 	var re = regexp.MustCompile(`{{.*?}}`)
 
@@ -81,24 +81,24 @@ func (this *FilePointer) BuildPathKey() string {
 	return path.Clean(p)
 }
 
-func (this *FilePointer) RealLocation() string {
-	p := this.Key
+func (fp *FilePointer) RealLocation() string {
+	p := fp.Key
 	for key, val := range config.DirVars {
 		p = strings.ReplaceAll(p, fmt.Sprintf("{{%s}}", key), val)
 	}
 	return path.Clean(p)
 }
 
-func (this *FilePointer) StaticMetaPath() string {
-	return path.Join(this.MetaPath, "static.json")
+func (fp *FilePointer) StaticMetaPath() string {
+	return path.Join(fp.MetaPath, "static.json")
 }
 
-func (this *FilePointer) DynamicMetaPath() string {
-	return path.Join(this.MetaPath, "dynamic.json")
+func (fp *FilePointer) DynamicMetaPath() string {
+	return path.Join(fp.MetaPath, "dynamic.json")
 }
 
-func (this *FilePointer) DirHash() string {
-	dir := path.Dir(this.PathKey)
+func (fp *FilePointer) DirHash() string {
+	dir := path.Dir(fp.PathKey)
 
 	byteKey := []byte(dir)
 	byteHash := crc32.ChecksumIEEE(byteKey)
@@ -147,10 +147,10 @@ func InitializeFilePointers() error {
 	}
 }
 
-func (this *FilePointer) ReindexIntoBatch(idx *bleve.Batch) error {
-	doc := this.BuildReindexDoc()
+func (fp *FilePointer) ReindexIntoBatch(idx *bleve.Batch) error {
+	doc := fp.BuildReindexDoc()
 
-	err := idx.Index(this.Hash, doc)
+	err := idx.Index(fp.Hash, doc)
 	if err != nil {
 		return err
 	}
@@ -158,10 +158,10 @@ func (this *FilePointer) ReindexIntoBatch(idx *bleve.Batch) error {
 	return nil
 }
 
-func (this *FilePointer) Reindex() error {
-	doc := this.BuildReindexDoc()
+func (fp *FilePointer) Reindex() error {
+	doc := fp.BuildReindexDoc()
 
-	err := bleveIndex.Index(this.Hash, doc)
+	err := bleveIndex.Index(fp.Hash, doc)
 	if err != nil {
 		return err
 	}
@@ -169,24 +169,24 @@ func (this *FilePointer) Reindex() error {
 	return nil
 }
 
-func (this *FilePointer) BuildReindexDoc() FileMetadata {
+func (fp *FilePointer) BuildReindexDoc() FileMetadata {
 	var err error
 	var file FileMetadata
-	static, err := NewFileMetadataStaticFromFile(this.StaticMetaPath())
+	static, err := NewFileMetadataStaticFromFile(fp.StaticMetaPath())
 	if err != nil {
 		file.FileMetadataStatic = FileMetadataStatic{}
 	} else {
 		file.FileMetadataStatic = *static
 	}
-	file.FileMetadataStatic.FillEmptyFields(this)
+	file.FileMetadataStatic.FillEmptyFields(fp)
 
-	dynamic, err := NewFileMetadataDynamicFromFile(this.DynamicMetaPath())
+	dynamic, err := NewFileMetadataDynamicFromFile(fp.DynamicMetaPath())
 	if err != nil {
 		file.FileMetadataDynamic = FileMetadataDynamic{}
 	} else {
 		file.FileMetadataDynamic = *dynamic
 	}
-	file.FileMetadataDynamic.FillEmptyFields(this)
+	file.FileMetadataDynamic.FillEmptyFields(fp)
 
 	return file
 }

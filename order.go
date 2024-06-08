@@ -31,8 +31,8 @@ func InitializeOrder() {
 	}
 }
 
-func (this OrderFields) Find(key string) (OrderField, bool) {
-	for _, v := range this {
+func (of OrderFields) Find(key string) (OrderField, bool) {
+	for _, v := range of {
 		if v.Key == key {
 			return v, true
 		}

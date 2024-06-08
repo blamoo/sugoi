@@ -2,9 +2,9 @@
 	<title>Sugoi - {{.Title}}</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.3.2/darkly/bootstrap.min.css" integrity="sha512-JjQ+gz9+fc47OLooLs9SDfSSVrHu7ypfFM7Bd+r4dCePQnD/veA7P590ovnFPzldWsPwYRpOK1FnePimGNpdrA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-	<link rel="stylesheet" href="/static/main.css" />
+	<link rel="stylesheet" {{ asset "href" "/static/css/bootswatch.min.css" }} />
+	<link rel="stylesheet" {{ asset "href" "/static/css/font-awesome.min.css" }} />
+	<link rel="stylesheet" {{ asset "href" "/static/main.css" }} />
 	<link rel="icon" href="/favicon.ico" />
 	<style>
 		/* fix darkly theme table colors (https://github.com/thomaspark/bootswatch/issues/1276) */

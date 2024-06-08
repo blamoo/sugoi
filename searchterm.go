@@ -9,11 +9,11 @@ type SearchTerm struct {
 	Label string
 }
 
-func (this *SearchTerm) Url() string {
+func (t *SearchTerm) Url() string {
 	u := new(url.URL)
 	u.Path = "/"
 	q := u.Query()
-	q.Set("q", BuildBleveSearchTerm(this.Key, this.Label))
+	q.Set("q", BuildBleveSearchTerm(t.Key, t.Label))
 	u.RawQuery = q.Encode()
 	return u.String()
 }

@@ -34,6 +34,7 @@ import (
 var configPath string
 var filePointers FilePointerList
 var bleveIndex bleve.Index
+var httproot string
 
 func main() {
 	var err error
@@ -92,7 +93,6 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(filePointers.List)
-		return
 	})
 
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -294,11 +294,11 @@ func main() {
 
 			returnPage := r.FormValue("return")
 			if len(returnPage) > 0 && returnPage[0] == '/' {
-				http.Redirect(w, r, returnPage, 302)
+				http.Redirect(w, r, returnPage, http.StatusFound)
 				return
 			}
 
-			http.Redirect(w, r, "/", 302)
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 
@@ -313,7 +313,7 @@ func main() {
 			session.Save(r, w)
 		}
 
-		http.Redirect(w, r, "/login", 302)
+		http.Redirect(w, r, "/login", http.StatusFound)
 	})
 
 	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}.json", func(w http.ResponseWriter, r *http.Request) {
@@ -322,7 +322,7 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
+		vHash := vars["hash"]
 
 		thing, err := NewThingFromHash(vHash)
 		if err != nil {
@@ -332,7 +332,6 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(thing)
-		return
 	})
 
 	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}", func(w http.ResponseWriter, r *http.Request) {
@@ -341,7 +340,7 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
+		vHash := vars["hash"]
 
 		thing, err := NewThingFromHash(vHash)
 		if err != nil {
@@ -436,7 +435,7 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
+		vHash := vars["hash"]
 
 		thing, err := NewThingFromHash(vHash)
 		if err != nil {
@@ -472,7 +471,7 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
+		vHash := vars["hash"]
 
 		thing, err := NewThingFromHash(vHash)
 		if err != nil {
@@ -530,7 +529,7 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
+		vHash := vars["hash"]
 
 		thing, err := NewThingFromHash(vHash)
 		if err != nil {
@@ -561,7 +560,7 @@ func main() {
 			RenderError(w, r, err.Error())
 			return
 		}
-		http.Redirect(w, r, thing.DetailsUrl(), 302)
+		http.Redirect(w, r, thing.DetailsUrl(), http.StatusFound)
 	})
 
 	router.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", func(w http.ResponseWriter, r *http.Request) {
@@ -816,7 +815,7 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
+		vHash := vars["hash"]
 		vPage, _ := strconv.Atoi(strings.TrimLeft(vars["page"], "/"))
 
 		thing, err := NewThingFromHash(vHash)
@@ -853,8 +852,8 @@ func main() {
 		}
 
 		vars := mux.Vars(r)
-		vHash, _ := vars["hash"]
-		vFile, _ := vars["file"]
+		vHash := vars["hash"]
+		vFile := vars["file"]
 		fSize := r.FormValue("size")
 
 		if fSize == "thumb" {
@@ -962,14 +961,14 @@ func main() {
 					return
 				}
 
-				http.Redirect(w, r, "/system", 302)
-				// http.Redirect(w, r, "/system?action=reindexStatus", 302)
+				http.Redirect(w, r, "/system", http.StatusFound)
+				// http.Redirect(w, r, "/system?action=reindexStatus", http.StatusFound)
 				return
 
 			case "cancelReindex":
 				reindexJob.RequestCancel = true
 
-				http.Redirect(w, r, "/system?action=reindexStatus", 302)
+				http.Redirect(w, r, "/system?action=reindexStatus", http.StatusFound)
 				return
 
 			case "reload":
@@ -1064,7 +1063,15 @@ func main() {
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	fmt.Println("uwu")
-	fmt.Printf("Listening on http://%s:%d\n", config.ServerHost, config.ServerPort)
+
+	if config.ServerPort == 80 {
+		httproot = fmt.Sprintf("http://%s/", config.ServerHost)
+	} else {
+		httproot = fmt.Sprintf("http://%s:%d/\n", config.ServerHost, config.ServerPort)
+	}
+
+	fmt.Printf("Listening on %s\n", httproot)
+
 	err = http.ListenAndServe(fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort), router)
 	if err != nil {
 		fmt.Println(err)

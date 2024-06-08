@@ -52,7 +52,7 @@ func InitializeBuildTime() {
 }
 
 func BuildDiff() string {
-	diff := time.Now().Sub(buildTime)
+	diff := time.Since(buildTime)
 	return DurationFormat(diff)
 }
 

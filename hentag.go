@@ -35,27 +35,13 @@ type HentagV1Work struct {
 func (v HentagV1Work) ToTags() map[string][]string {
 	ret := make(map[string][]string, 0)
 
-	for _, tag := range v.Parodies {
-		ret["Parodies"] = append(ret["Parodies"], tag)
-	}
-	for _, tag := range v.Circles {
-		ret["Circles"] = append(ret["Circles"], tag)
-	}
-	for _, tag := range v.Artists {
-		ret["Artists"] = append(ret["Artists"], tag)
-	}
-	for _, tag := range v.Characters {
-		ret["Characters"] = append(ret["Characters"], tag)
-	}
-	for _, tag := range v.MaleTags {
-		ret["Male Tags"] = append(ret["Male Tags"], tag)
-	}
-	for _, tag := range v.FemaleTags {
-		ret["Female Tags"] = append(ret["Female Tags"], tag)
-	}
-	for _, tag := range v.OtherTags {
-		ret["Other Tags"] = append(ret["Other Tags"], tag)
-	}
+	ret["Parodies"] = append(ret["Parodies"], v.Parodies...)
+	ret["Circles"] = append(ret["Circles"], v.Circles...)
+	ret["Artists"] = append(ret["Artists"], v.Artists...)
+	ret["Characters"] = append(ret["Characters"], v.Characters...)
+	ret["Male Tags"] = append(ret["Male Tags"], v.MaleTags...)
+	ret["Female Tags"] = append(ret["Female Tags"], v.FemaleTags...)
+	ret["Other Tags"] = append(ret["Other Tags"], v.OtherTags...)
 
 	return ret
 }

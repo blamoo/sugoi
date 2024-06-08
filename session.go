@@ -88,7 +88,7 @@ func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 		q := u.Query()
 		q.Set("return", returnPath)
 		u.RawQuery = q.Encode()
-		http.Redirect(w, r, u.String(), 302)
+		http.Redirect(w, r, u.String(), http.StatusNotFound)
 	}
 
 	return userSession, failedSession

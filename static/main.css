@@ -1,8 +1,8 @@
-.text-gold{
+.text-gold {
     color: rgb(218, 166, 35);
 }
 
-.text-red{
+.text-red {
     color: #c00;
 }
 
@@ -77,5 +77,5 @@ button.rateButton {
 }
 
 button.rateButton.active {
-color: rgb(218, 166, 35);
+    color: rgb(218, 166, 35);
 }

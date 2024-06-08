@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,7 +28,7 @@ type Thing struct {
 func NewThingFromHash(hash string) (*Thing, error) {
 	file, found := filePointers.ByHash[hash]
 	if !found {
-		return nil, fmt.Errorf("File %s not found", hash)
+		return nil, fmt.Errorf("file %s not found", hash)
 	}
 
 	ret := Thing{}
@@ -55,13 +56,13 @@ func NewThingFromHash(hash string) (*Thing, error) {
 	return &ret, nil
 }
 
-func (this *Thing) FillEmptyFields(file *FilePointer) {
-	if len(this.Title) == 0 {
-		this.Title = file.PathKey
+func (t *Thing) FillEmptyFields(file *FilePointer) {
+	if len(t.Title) == 0 {
+		t.Title = file.PathKey
 	}
 
-	if len(this.Collection) == 0 {
-		this.Collection = fmt.Sprintf("No Collection (%s)", file.DirHash())
+	if len(t.Collection) == 0 {
+		t.Collection = fmt.Sprintf("No Collection (%s)", file.DirHash())
 	}
 
 	// if len(this.Cover) == 0 {
@@ -69,16 +70,16 @@ func (this *Thing) FillEmptyFields(file *FilePointer) {
 	// }
 }
 
-func (this *Thing) Key() string {
-	return this.File.Key
+func (t *Thing) Key() string {
+	return t.File.Key
 }
 
-func (this *Thing) Hash() string {
-	return this.File.Hash
+func (t *Thing) Hash() string {
+	return t.File.Hash
 }
 
-func (this *Thing) BuildPathKey() string {
-	p := this.Key()
+func (t *Thing) BuildPathKey() string {
+	p := t.Key()
 
 	var re = regexp.MustCompile(`{{.*?}}`)
 
@@ -91,9 +92,9 @@ func (this *Thing) BuildPathKey() string {
 	return path.Clean(p)
 }
 
-func (this *Thing) TrySaveDynamic() error {
+func (t *Thing) TrySaveDynamic() error {
 	var err error
-	metaFilePath := this.File.DynamicMetaPath()
+	metaFilePath := t.File.DynamicMetaPath()
 	_, err = os.Stat(metaFilePath)
 	if os.IsNotExist(err) {
 		os.MkdirAll(path.Dir(metaFilePath), 0755)
@@ -108,7 +109,7 @@ func (this *Thing) TrySaveDynamic() error {
 	e := json.NewEncoder(f)
 	e.SetIndent("", "\t")
 
-	err = e.Encode(this.FileMetadataDynamic)
+	err = e.Encode(t.FileMetadataDynamic)
 	if err != nil {
 		return err
 	}
@@ -116,162 +117,165 @@ func (this *Thing) TrySaveDynamic() error {
 	return nil
 }
 
-func (this *Thing) TrySaveRating(rating int) error {
-	old := this.FileMetadataDynamic
-	this.Rating = rating
-	this.UpdatedAt = time.Now()
+func (t *Thing) TrySaveRating(rating int) error {
+	old := t.FileMetadataDynamic
+	t.Rating = rating
+	t.UpdatedAt = time.Now()
 
-	err := this.TrySaveDynamic()
+	err := t.TrySaveDynamic()
 	if err != nil {
-		this.FileMetadataDynamic = old
+		t.FileMetadataDynamic = old
 		return err
 	}
-	this.File.Reindex()
+	t.File.Reindex()
 
 	return nil
 }
 
-func (this *Thing) AddMark() error {
-	old := this.FileMetadataDynamic
-	this.Marks++
+func (t *Thing) AddMark() error {
+	old := t.FileMetadataDynamic
+	t.Marks++
 
-	err := this.TrySaveDynamic()
+	err := t.TrySaveDynamic()
 	if err != nil {
-		this.FileMetadataDynamic = old
+		t.FileMetadataDynamic = old
 		return err
 	}
-	this.File.Reindex()
+	t.File.Reindex()
 
 	return nil
 }
 
-func (this *Thing) SubMark() error {
-	old := this.FileMetadataDynamic
-	this.Marks--
+func (t *Thing) SubMark() error {
+	old := t.FileMetadataDynamic
+	t.Marks--
 
-	err := this.TrySaveDynamic()
+	err := t.TrySaveDynamic()
 	if err != nil {
-		this.FileMetadataDynamic = old
+		t.FileMetadataDynamic = old
 		return err
 	}
-	this.File.Reindex()
+	t.File.Reindex()
 
 	return nil
 }
 
-func (this *Thing) TrySaveCover(file string, isUpdate bool) error {
-	prefix := this.FileUrlPrefix()
-	realLocation := this.File.RealLocation()
-	newCover, err := filepath.Rel(prefix, file)
+func (t *Thing) TrySaveCover(file string, isUpdate bool) error {
+	prefix := t.FileUrlPrefix()
+	realLocation := t.File.RealLocation()
+	newCover, _ := filepath.Rel(prefix, file)
 
-	files, err := this.ListFiles()
+	files, err := t.ListFiles()
 	if err != nil {
 		return err
 	}
 
-	for _, file := range files {
-		if file == file {
-			old := this.FileMetadataDynamic
-			this.Cover = newCover
+	for _, cfile := range files {
+		if cfile == file {
+			old := t.FileMetadataDynamic
+			t.Cover = newCover
 			if isUpdate {
-				this.UpdatedAt = time.Now()
+				t.UpdatedAt = time.Now()
 			}
 
-			err := this.TrySaveDynamic()
+			err := t.TrySaveDynamic()
 			if err != nil {
-				this.FileMetadataDynamic = old
+				t.FileMetadataDynamic = old
 				return err
 			}
-			this.File.Reindex()
+			t.File.Reindex()
 
 			return nil
 		}
 	}
 
-	return fmt.Errorf("File %s doesn't exists in %s", newCover, realLocation)
+	return fmt.Errorf("file %s doesn't exists in %s", newCover, realLocation)
 }
 
-func (this *Thing) CoverImageUrl() string {
-	if len(this.Cover) > 0 {
-		return this.Cover
+func (t *Thing) CoverImageUrl() string {
+	if len(t.Cover) > 0 {
+		return t.Cover
 	}
 
-	f, err := this.ListFilesRaw()
+	f, err := t.ListFilesRaw()
 	if err != nil || len(f) == 0 {
 		return "/static/empty.jpg"
 	}
 
-	if this.Thumbnail > 0 {
-		if len(f) >= this.Thumbnail {
-			this.TrySaveCover(f[this.Thumbnail-1], false)
+	if t.Thumbnail > 0 {
+		if len(f) >= t.Thumbnail {
+			t.TrySaveCover(f[t.Thumbnail-1], false)
 
-			return f[this.Thumbnail-1]
+			return f[t.Thumbnail-1]
 		}
 	}
 	return f[0]
 }
 
-func (this *Thing) FileUrlPrefix() string {
-	return fmt.Sprintf("/thing/file/%s", this.Hash())
+func (t *Thing) FileUrlPrefix() string {
+	return fmt.Sprintf("/thing/file/%s", t.Hash())
 }
 
-func (this *Thing) FileUrl(f string) string {
-	return fmt.Sprintf("%s/%s", this.FileUrlPrefix(), url.PathEscape(strings.TrimLeft(f, "/")))
+func (t *Thing) FileUrl(f string) string {
+	if f == "/static/empty.jpg" {
+		return "/static/empty.jpg"
+	}
+	return fmt.Sprintf("%s/%s", t.FileUrlPrefix(), url.PathEscape(strings.TrimLeft(f, "/")))
 }
 
-func (this *Thing) ReadFileUrl(i int) string {
-	return fmt.Sprintf("%s/%d", this.ReadUrl(), i)
+func (t *Thing) ReadFileUrl(i int) string {
+	return fmt.Sprintf("%s/%d", t.ReadUrl(), i)
 }
 
-func (this *Thing) ThumbUrl(f string) string {
+func (t *Thing) ThumbUrl(f string) string {
 	if len(f) > 0 {
-		return fmt.Sprintf("%s?size=thumb", this.FileUrl(f))
+		return fmt.Sprintf("%s?size=thumb", t.FileUrl(f))
 	}
 	return "/static/empty-256.jpg"
 }
 
-func (this *Thing) DetailsUrl() string {
-	return fmt.Sprintf("/thing/details/%s", this.Hash())
+func (t *Thing) DetailsUrl() string {
+	return fmt.Sprintf("/thing/details/%s", t.Hash())
 }
 
-func (this *Thing) ReadUrl() string {
-	return fmt.Sprintf("/thing/read/%s", this.Hash())
+func (t *Thing) ReadUrl() string {
+	return fmt.Sprintf("/thing/read/%s", t.Hash())
 }
 
-func (this *Thing) SortedTags() map[string][]SearchTerm {
+func (t *Thing) SortedTags() map[string][]SearchTerm {
 	ret := make(map[string][]SearchTerm)
 
-	for _, artist := range this.Artist {
+	for _, artist := range t.Artist {
 		if len(artist) != 0 {
 			ret["Artist"] = append(ret["Artist"], NewSearchTerm("artist", artist))
 		}
 	}
 
-	for _, circle := range this.Circle {
+	for _, circle := range t.Circle {
 		if len(circle) != 0 {
 			ret["Circle"] = append(ret["Circle"], NewSearchTerm("circle", circle))
 		}
 	}
 
-	if len(this.Language) != 0 {
-		ret["Language"] = append(ret["Language"], NewSearchTerm("language", this.Language))
+	if len(t.Language) != 0 {
+		ret["Language"] = append(ret["Language"], NewSearchTerm("language", t.Language))
 	}
 
-	if len(this.Parody) != 0 {
-		ret["Parody"] = append(ret["Parody"], NewSearchTerm("parody", this.Parody))
+	if len(t.Parody) != 0 {
+		ret["Parody"] = append(ret["Parody"], NewSearchTerm("parody", t.Parody))
 	}
 
-	for _, magazine := range this.Magazine {
+	for _, magazine := range t.Magazine {
 		if len(magazine) != 0 {
 			ret["Magazine"] = append(ret["Magazine"], NewSearchTerm("magazine", magazine))
 		}
 	}
 
-	if len(this.Publisher) != 0 {
-		ret["Publisher"] = append(ret["Publisher"], NewSearchTerm("publisher", this.Publisher))
+	if len(t.Publisher) != 0 {
+		ret["Publisher"] = append(ret["Publisher"], NewSearchTerm("publisher", t.Publisher))
 	}
 
-	for _, tag := range this.Tags {
+	for _, tag := range t.Tags {
 		if len(tag) != 0 {
 			ret["Tags"] = append(ret["Tags"], NewSearchTerm("tags", tag))
 		}
@@ -280,29 +284,29 @@ func (this *Thing) SortedTags() map[string][]SearchTerm {
 	return ret
 }
 
-func (this *Thing) CollectionDetailsUrl() string {
+func (t *Thing) CollectionDetailsUrl() string {
 	u := new(url.URL)
 	u.Path = "/"
 	q := u.Query()
-	q.Set("q", BuildBleveSearchTerm("Collection", this.Collection))
+	q.Set("q", BuildBleveSearchTerm("Collection", t.Collection))
 	u.RawQuery = q.Encode()
 	return u.String()
 }
 
-func (this *Thing) SearchMetadataUrl() string {
-	return fmt.Sprintf("/thing/searchMetadata/%s", this.Hash())
+func (t *Thing) SearchMetadataUrl() string {
+	return fmt.Sprintf("/thing/searchMetadata/%s", t.Hash())
 }
 
-func (this *Thing) SaveMetadataUrl() string {
-	return fmt.Sprintf("/thing/saveMetadata/%s", this.Hash())
+func (t *Thing) SaveMetadataUrl() string {
+	return fmt.Sprintf("/thing/saveMetadata/%s", t.Hash())
 }
 
-func (this *Thing) EditMetadataUrl() string {
-	return fmt.Sprintf("/thing/editMetadata/%s", this.Hash())
+func (t *Thing) EditMetadataUrl() string {
+	return fmt.Sprintf("/thing/editMetadata/%s", t.Hash())
 }
 
-func (this *Thing) FilledStarsRepeat(str string) string {
-	i := this.Rating
+func (t *Thing) FilledStarsRepeat(str string) string {
+	i := t.Rating
 
 	if i > 5 {
 		i = 5
@@ -315,8 +319,8 @@ func (this *Thing) FilledStarsRepeat(str string) string {
 	return strings.Repeat(str, i)
 }
 
-func (this *Thing) EmptyStarsRepeat(str string) string {
-	i := this.Rating
+func (t *Thing) EmptyStarsRepeat(str string) string {
+	i := t.Rating
 
 	if i > 5 {
 		i = 5
@@ -329,22 +333,22 @@ func (this *Thing) EmptyStarsRepeat(str string) string {
 	return strings.Repeat(str, 5-i)
 }
 
-func (this *Thing) ListFiles() ([]string, error) {
-	raw, err := this.ListFilesRaw()
+func (t *Thing) ListFiles() ([]string, error) {
+	raw, err := t.ListFilesRaw()
 	if err != nil {
 		return nil, err
 	}
 	ret := make([]string, len(raw))
 	for key, val := range raw {
-		ret[key] = this.FileUrl(val)
+		ret[key] = t.FileUrl(val)
 	}
 	return ret, nil
 }
 
-func (this *Thing) ListFilesRaw() ([]string, error) {
+func (t *Thing) ListFilesRaw() ([]string, error) {
 	var files []string
 
-	fname := config.CacheFile("thing/file", this.Hash(), ".files")
+	fname := config.CacheFile("thing/file", t.Hash(), ".files")
 	os.MkdirAll(path.Dir(fname), 0755)
 
 	f, err := os.Open(fname)
@@ -370,9 +374,9 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 	}
 	debugPrintf("File list cache miss: %s", fname)
 
-	compressedFileName := this.File.RealLocation()
+	compressedFileName := t.File.RealLocation()
 
-	fsys, err := archiver.FileSystem(nil, compressedFileName)
+	fsys, err := archiver.FileSystem(context.TODO(), compressedFileName)
 
 	if err != nil {
 		return nil, err
@@ -388,15 +392,16 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 		}
 
 		// #TODO move this list of extensions to config file
-		if strings.Index(path, ".yaml") != -1 {
+
+		if strings.HasSuffix(path, ".yaml") {
 			return nil
 		}
 
-		if strings.Index(path, ".txt") != -1 {
+		if strings.HasSuffix(path, ".txt") {
 			return nil
 		}
 
-		if strings.Index(path, ".db") != -1 {
+		if strings.HasSuffix(path, ".db") {
 			return nil
 		}
 
@@ -409,29 +414,27 @@ func (this *Thing) ListFilesRaw() ([]string, error) {
 
 	f.Close()
 
-	if false {
-		f, err = os.Create(fname)
-		if err == nil {
-			defer f.Close()
+	f, err = os.Create(fname)
+	if err == nil {
+		defer f.Close()
 
-			filesJoin := strings.Join(files, "\n")
-			n, err := io.WriteString(f, filesJoin)
-			if err == nil {
-				debugPrintf("File list cache write (%d bytes): %s", n, fname)
-			}
+		filesJoin := strings.Join(files, "\n")
+		n, err := io.WriteString(f, filesJoin)
+		if err == nil {
+			debugPrintf("File list cache write (%d bytes): %s", n, fname)
 		}
 	}
 
 	return files, nil
 }
 
-func (this *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
+func (t *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 	var closers MultiCloser
 
 	if len(file) > 0 && file[len(file)-1] != '/' {
-		compressedFileName := path.Clean(path.Join(this.File.RealLocation()))
+		compressedFileName := path.Clean(path.Join(t.File.RealLocation()))
 
-		fsys, err := archiver.FileSystem(nil, compressedFileName)
+		fsys, err := archiver.FileSystem(context.TODO(), compressedFileName)
 		if err != nil {
 			return nil, closers, err
 		}
@@ -439,19 +442,19 @@ func (this *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 		ret, err := fsys.Open(file)
 
 		if err != nil {
-			return nil, closers, fmt.Errorf("Couldn't read file %s from %s", file, compressedFileName)
+			return nil, closers, fmt.Errorf("couldn't read file %s from %s", file, compressedFileName)
 		}
 		closers = append(closers, ret)
 
 		return ret, closers, nil
 	}
 
-	return nil, closers, fmt.Errorf("Invalid file: %s", file)
+	return nil, closers, fmt.Errorf("invalid file: %s", file)
 }
 
-func (this *Thing) TrySaveStatic() error {
+func (t *Thing) TrySaveStatic() error {
 	var err error
-	metaFilePath := this.File.StaticMetaPath()
+	metaFilePath := t.File.StaticMetaPath()
 	_, err = os.Stat(metaFilePath)
 	if os.IsNotExist(err) {
 		os.MkdirAll(path.Dir(metaFilePath), 0755)
@@ -466,7 +469,7 @@ func (this *Thing) TrySaveStatic() error {
 	e := json.NewEncoder(f)
 	e.SetIndent("", "\t")
 
-	err = e.Encode(this.FileMetadataStatic)
+	err = e.Encode(t.FileMetadataStatic)
 	if err != nil {
 		return err
 	}

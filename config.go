@@ -100,7 +100,7 @@ func InitializeConfig() error {
 		rand.Read(b)
 		sEnc := base64.StdEncoding.EncodeToString(b)
 		fmt.Println(sEnc)
-		return fmt.Errorf("Update your configuration file with a valid value, then run sugoi again")
+		return fmt.Errorf("update your configuration file with a valid value, then run sugoi again")
 	}
 
 	return nil

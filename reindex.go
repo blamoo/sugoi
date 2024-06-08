@@ -14,19 +14,19 @@ type ReindexJob struct {
 	Log           []string
 }
 
-func (this *ReindexJob) Start() error {
+func (job *ReindexJob) Start() error {
 	const BATCH_LIMIT = 500
-	if this.Running {
+	if job.Running {
 		return fmt.Errorf("Reindex already started")
 	}
 
-	this.Running = true
-	this.RequestCancel = false
-	this.Processed = 0
-	this.Total = len(filePointers.List)
-	this.Error = 0
-	this.Ok = 0
-	this.Log = nil
+	job.Running = true
+	job.RequestCancel = false
+	job.Processed = 0
+	job.Total = len(filePointers.List)
+	job.Error = 0
+	job.Ok = 0
+	job.Log = nil
 
 	go func() {
 		var err error
@@ -35,35 +35,35 @@ func (this *ReindexJob) Start() error {
 		i := 0
 		for _, file := range filePointers.List {
 
-			if this.RequestCancel {
-				this.Log = append(this.Log, "Cancelled")
+			if job.RequestCancel {
+				job.Log = append(job.Log, "Cancelled")
 				break
 			}
 
-			thing, err := NewThingFromHash(file.Hash)
-			_, err = thing.ListFilesRaw()
+			thing, _ := NewThingFromHash(file.Hash)
+			thing.ListFilesRaw()
 
 			err = file.ReindexIntoBatch(batch)
 			if err != nil {
-				this.Error++
-				this.Processed++
-				this.Log = append(this.Log, fmt.Sprintf("%s: %s", file.Key, err.Error()))
+				job.Error++
+				job.Processed++
+				job.Log = append(job.Log, fmt.Sprintf("%s: %s", file.Key, err.Error()))
 			} else {
 				i++
-				this.Ok++
-				this.Processed++
+				job.Ok++
+				job.Processed++
 				// this.Log = append(this.Log, fmt.Sprintf("%s: %s", file.Key, "OK"))
 			}
 
 			if i >= BATCH_LIMIT {
-				this.Log = append(this.Log, fmt.Sprintf("Processing batch of %d files", BATCH_LIMIT))
+				job.Log = append(job.Log, fmt.Sprintf("Processing batch of %d files", BATCH_LIMIT))
 				i = 0
 				err = bleveIndex.Batch(batch)
 				if err != nil {
-					this.Log = append(this.Log, fmt.Sprintf("Error: %s", err.Error()))
+					job.Log = append(job.Log, fmt.Sprintf("Error: %s", err.Error()))
 				} else {
-					if this.Total != 0 {
-						this.Log = append(this.Log, fmt.Sprintf("%.1f%% done", (float64(this.Processed)/float64(this.Total))*100.0))
+					if job.Total != 0 {
+						job.Log = append(job.Log, fmt.Sprintf("%.1f%% done", (float64(job.Processed)/float64(job.Total))*100.0))
 					}
 				}
 				batch = bleveIndex.NewBatch()
@@ -71,16 +71,16 @@ func (this *ReindexJob) Start() error {
 		}
 
 		if i > 0 {
-			this.Log = append(this.Log, fmt.Sprintf("Processing final batch of %d files", i))
+			job.Log = append(job.Log, fmt.Sprintf("Processing final batch of %d files", i))
 			err = bleveIndex.Batch(batch)
 			if err != nil {
-				this.Log = append(this.Log, fmt.Sprintf("Error: %s", err.Error()))
+				job.Log = append(job.Log, fmt.Sprintf("Error: %s", err.Error()))
 			} else {
-				this.Log = append(this.Log, "100% done!")
+				job.Log = append(job.Log, "100% done!")
 			}
 		}
 
-		this.Running = false
+		job.Running = false
 	}()
 
 	return nil

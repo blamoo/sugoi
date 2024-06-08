@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -13,8 +14,18 @@ func RenderPage(w http.ResponseWriter, r *http.Request, name string, data interf
 	var err error
 	r.ParseForm()
 
+	var baseUrl url.URL
+	baseUrl.Host = r.Host
+
 	if templateStore == nil || config.Debug {
 		tmpl := template.New("")
+
+		tmpl = tmpl.Funcs(template.FuncMap{"asset": func(attrn string, filePath string) template.HTMLAttr {
+			fileUrl := baseUrl
+			fileUrl.Path = filePath
+
+			return template.HTMLAttr(fmt.Sprintf(`%s="%s"`, attrn, fileUrl.String()))
+		}})
 
 		tmpl = tmpl.Funcs(template.FuncMap{"noescape": func(str string) template.HTML {
 			return template.HTML(str)
