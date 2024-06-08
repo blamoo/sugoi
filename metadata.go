@@ -16,6 +16,7 @@ import (
 
 type FileMetadataStatic struct {
 	Id              int               `json:"id" schema:"id"`
+	IdSource        string            `json:"id_source" schema:"id_source"`
 	Collection      string            `json:"collection" schema:"collection"`
 	Title           string            `json:"title" schema:"title"`
 	Type            string            `json:"type" schema:"type"`

@@ -84,6 +84,9 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	IdMapping := bleve.NewNumericFieldMapping()
 	thingMapping.AddFieldMappingsAt("id", IdMapping)
 
+	IdSourceMapping := bleve.NewTextFieldMapping()
+	thingMapping.AddFieldMappingsAt("idsource", IdSourceMapping)
+
 	LanguageMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("language", LanguageMapping)
 
@@ -122,9 +125,20 @@ func BuildBleveSearchTerm(key string, val string) string {
 
 	sb.WriteString("+")
 	sb.WriteString(strings.ToLower(key))
-	sb.WriteString(":\"")
+	sb.WriteString(`:"`)
 	sb.WriteString(inQuotesReplacer.Replace(val))
-	sb.WriteString("\"")
+	sb.WriteString(`"`)
+
+	return sb.String()
+}
+
+func BuildBleveSearchTermInt(key string, val string) string {
+	sb := strings.Builder{}
+
+	sb.WriteString("+")
+	sb.WriteString(strings.ToLower(key))
+	sb.WriteString(":")
+	sb.WriteString(inQuotesReplacer.Replace(val))
 
 	return sb.String()
 }
