@@ -19,19 +19,19 @@ type FileMetadataStatic struct {
 	IdSource        string            `json:"id_source" schema:"id_source"`
 	Collection      string            `json:"collection" schema:"collection"`
 	Title           string            `json:"title" schema:"title"`
-	Type            string            `json:"type" schema:"type"`
 	Tags            StringArray       `json:"tags" schema:"tags"`
 	Language        string            `json:"language" schema:"language"`
 	Artist          StringArray       `json:"artist" schema:"artist"`
 	Circle          StringArray       `json:"circle" schema:"circle"`
 	CreatedAt       time.Time         `json:"created_at" schema:"created_at"`
-	Parody          string            `json:"parody" schema:"parody"`
+	Parody          StringArray       `json:"parody" schema:"parody"`
 	Magazine        StringArray       `json:"magazine" schema:"magazine"`
-	Publisher       string            `json:"publisher" schema:"publisher"`
+	Publisher       StringArray       `json:"publisher" schema:"publisher"`
 	Description     string            `json:"description" schema:"description"`
 	Pages           int               `json:"pages" schema:"pages"`
 	Thumbnail       int               `json:"thumbnail" schema:"thumbnail"`
 	MetadataSources map[string]string `json:"metadataSources" schema:"metadataSources"`
+	Files           StringArray       `json:"files" schema:"files"`
 }
 
 type FileMetadataDynamic struct {
@@ -130,13 +130,13 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 			ret.Magazine.SetFromTextArea(form.Get(key))
 
 		case "publisher":
-			ret.Publisher = form.Get(key)
+			ret.Publisher.SetFromTextArea(form.Get(key))
 
 		case "collection":
 			ret.Collection = form.Get(key)
 
 		case "parody":
-			ret.Parody = form.Get(key)
+			ret.Parody.SetFromTextArea(form.Get(key))
 
 		case "title":
 			ret.Title = form.Get(key)

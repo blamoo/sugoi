@@ -9,6 +9,11 @@ import (
 type StringArray []string
 
 func (s *StringArray) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*s = StringArray{}
+		return nil
+	}
+
 	var err error
 	var asString string
 	err = json.Unmarshal(data, &asString)
@@ -27,14 +32,6 @@ func (s *StringArray) UnmarshalJSON(data []byte) error {
 	}
 
 	return fmt.Errorf("data should be string or string array")
-}
-
-func (s StringArray) MarshalJSON() ([]byte, error) {
-	if len(s) == 1 {
-		return json.Marshal(s[0])
-	}
-
-	return json.Marshal([]string(s))
 }
 
 func (s *StringArray) SetFromTextArea(str string) {

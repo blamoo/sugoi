@@ -269,8 +269,10 @@ func (t *Thing) SortedTags() map[string][]SearchTerm {
 		ret["Language"] = append(ret["Language"], NewSearchTerm("language", t.Language))
 	}
 
-	if len(t.Parody) != 0 {
-		ret["Parody"] = append(ret["Parody"], NewSearchTerm("parody", t.Parody))
+	for _, parody := range t.Parody {
+		if len(parody) != 0 {
+			ret["Parody"] = append(ret["Parody"], NewSearchTerm("parody", parody))
+		}
 	}
 
 	for _, magazine := range t.Magazine {
@@ -279,8 +281,10 @@ func (t *Thing) SortedTags() map[string][]SearchTerm {
 		}
 	}
 
-	if len(t.Publisher) != 0 {
-		ret["Publisher"] = append(ret["Publisher"], NewSearchTerm("publisher", t.Publisher))
+	for _, publisher := range t.Publisher {
+		if len(publisher) != 0 {
+			ret["Publisher"] = append(ret["Publisher"], NewSearchTerm("publisher", publisher))
+		}
 	}
 
 	for _, tag := range t.Tags {
@@ -354,6 +358,10 @@ func (t *Thing) ListFiles() ([]string, error) {
 }
 
 func (t *Thing) ListFilesRaw() ([]string, error) {
+	if len(t.FileMetadataStatic.Files) > 0 {
+		return t.FileMetadataStatic.Files, nil
+	}
+
 	var files []string
 
 	fname := config.CacheFile("thing/file", t.Hash(), ".files")
@@ -380,7 +388,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 		}
 		return files, nil
 	}
-	debugPrintf("File list cache miss: %s", fname)
+	debugPrintf("File list cache miss: %s\n", fname)
 
 	compressedFileName := t.File.RealLocation()
 
@@ -429,7 +437,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 		filesJoin := strings.Join(files, "\n")
 		n, err := io.WriteString(f, filesJoin)
 		if err == nil {
-			debugPrintf("File list cache write (%d bytes): %s", n, fname)
+			debugPrintf("File list cache write (%d bytes): %s\n", n, fname)
 		}
 	}
 

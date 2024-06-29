@@ -118,7 +118,11 @@
 
 					var $table = $tmp.find('.tagsTable');
 
+					debugger;
 					for (const rowTitle in work.tags) {
+						if (work.tags[rowTitle] === null) {
+							continue;
+						}
 						var $tagsTd = $('<td>');
 						for (const tag of work.tags[rowTitle]) {
 							$tagsTd.append([

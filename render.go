@@ -83,7 +83,7 @@ func RenderError(w http.ResponseWriter, r *http.Request, message string) {
 
 	data.Error = message
 	data.Title = "Error"
-	debugPrintf(message)
+	debugPrintf("%s\n", message)
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(400)
 	RenderPage(w, r, "error.gohtml", data)
