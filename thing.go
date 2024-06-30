@@ -202,14 +202,12 @@ func (t *Thing) CoverImageUrl() string {
 		return "/static/empty.jpg"
 	}
 
-	if t.Thumbnail > 0 {
-		if len(f) >= t.Thumbnail {
-			t.TrySaveCover(f[t.Thumbnail-1], false)
-
-			return f[t.Thumbnail-1]
-		}
+	if t.Thumbnail < 0 || t.Thumbnail >= len(f) {
+		return "/static/empty.jpg"
 	}
-	return f[0]
+
+	t.TrySaveCover(f[t.Thumbnail], false)
+	return f[t.Thumbnail]
 }
 
 func (t *Thing) FileUrlPrefix() string {
