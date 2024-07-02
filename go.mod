@@ -10,9 +10,9 @@ require (
 	github.com/gorilla/sessions v1.2.2
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
 	golang.org/x/crypto v0.23.0
-	golang.org/x/image v0.16.0
+	golang.org/x/image v0.18.0
 	golang.org/x/term v0.20.0
-	golang.org/x/text v0.15.0
+	golang.org/x/text v0.16.0
 )
 
 require (
