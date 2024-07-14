@@ -14,8 +14,38 @@ import (
 	"time"
 )
 
+type Id []string
+
+func (t *Id) UnmarshalJSON(data []byte) error {
+	var m map[string]string
+	err := json.Unmarshal(data, &m)
+	if err != nil {
+		return nil
+	}
+
+	for k, v := range m {
+		*t = append(*t, k+"/"+v)
+	}
+
+	return nil
+}
+
+func (t Id) MarshalJSON() ([]byte, error) {
+	// return json.Marshal(([]string)(t))
+	m := make(map[string]string, len(t))
+
+	for _, v := range t {
+		spl := strings.SplitN(v, "/", 2)
+		if len(spl) == 2 {
+			m[spl[0]] = spl[1]
+		}
+	}
+
+	return json.Marshal(m)
+}
+
 type FileMetadataStatic struct {
-	Id              map[string]string `json:"id" schema:"id"`
+	Id              Id                `json:"id" schema:"id"`
 	Collection      string            `json:"collection" schema:"collection"`
 	Title           string            `json:"title" schema:"title"`
 	Tags            StringArray       `json:"tags" schema:"tags"`
@@ -31,6 +61,10 @@ type FileMetadataStatic struct {
 	Thumbnail       int               `json:"thumbnail" schema:"thumbnail"`
 	MetadataSources map[string]string `json:"metadataSources" schema:"metadataSources"`
 	Files           StringArray       `json:"files" schema:"files"`
+}
+
+type FileMetadataStaticSub struct {
+	Id map[string]string `json:"id" schema:"id"`
 }
 
 type FileMetadataDynamic struct {

@@ -243,9 +243,9 @@ func (t *Thing) ReadUrl() string {
 func (t *Thing) SortedTags() map[string][]SearchTerm {
 	ret := make(map[string][]SearchTerm)
 
-	for source, id := range t.Id {
+	for _, id := range t.Id {
 		if len(id) != 0 {
-			ret["Id"] = append(ret["Id"], NewSearchTermMap("id", source, id))
+			ret["Id"] = append(ret["Id"], NewSearchTerm("id", id))
 		}
 	}
 

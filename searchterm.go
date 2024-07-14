@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"strconv"
 )
@@ -10,7 +9,8 @@ type SearchTermType int
 
 const TYPE_INT SearchTermType = 0
 const TYPE_TEXT SearchTermType = 1
-const TYPE_MAP SearchTermType = 2
+
+// const TYPE_MAP SearchTermType = 2
 
 type SearchTerm struct {
 	Key   string
@@ -27,8 +27,8 @@ func (t *SearchTerm) Url() string {
 	case TYPE_INT:
 		q.Set("q", BuildBleveSearchTermInt(t.Key, t.Label))
 
-	case TYPE_MAP:
-		q.Set("q", BuildBleveSearchTermMap(t.Key, t.Label))
+	// case TYPE_MAP:
+	// 	q.Set("q", BuildBleveSearchTermMap(t.Key, t.Label))
 
 	case TYPE_TEXT:
 		q.Set("q", BuildBleveSearchTerm(t.Key, t.Label))
@@ -48,15 +48,15 @@ func NewSearchTerm(key string, val string) SearchTerm {
 	return ret
 }
 
-func NewSearchTermMap(key string, mapKey string, val string) SearchTerm {
-	ret := SearchTerm{}
+// func NewSearchTermMap(key string, mapKey string, val string) SearchTerm {
+// 	ret := SearchTerm{}
 
-	ret.Key = fmt.Sprintf("%s.%s", key, mapKey)
-	ret.Label = val
-	ret.Type = TYPE_MAP
+// 	ret.Key = fmt.Sprintf("%s.%s", key, mapKey)
+// 	ret.Label = val
+// 	ret.Type = TYPE_MAP
 
-	return ret
-}
+// 	return ret
+// }
 
 func NewSearchTermInt(key string, val int) SearchTerm {
 	ret := SearchTerm{}

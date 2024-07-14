@@ -32,6 +32,10 @@ func InitializeBleve() error {
 		}
 	}
 
+	// registry.RegisterAnalyzer("FlatFuck", func(config map[string]interface{}, cache *registry.Cache) (analysis.Analyzer, error) {
+	// 	return nil, nil
+	// })
+
 	if stat == nil {
 		mapping := BuildNewMapping()
 		bleveIndex, err = bleve.New(path, mapping)
@@ -81,8 +85,8 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	DescriptionMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("description", DescriptionMapping)
 
-	IdSourceMapping := bleve.NewKeywordFieldMapping()
-	thingMapping.AddFieldMappingsAt("id", IdSourceMapping)
+	IdMapping := bleve.NewTextFieldMapping()
+	thingMapping.AddFieldMappingsAt("id", IdMapping)
 
 	LanguageMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("language", LanguageMapping)
