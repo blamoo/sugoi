@@ -243,12 +243,10 @@ func (t *Thing) ReadUrl() string {
 func (t *Thing) SortedTags() map[string][]SearchTerm {
 	ret := make(map[string][]SearchTerm)
 
-	if t.Id != 0 {
-		ret["Id"] = append(ret["Id"], NewSearchTermInt("id", t.Id))
-	}
-
-	if t.IdSource != "" {
-		ret["IdSource"] = append(ret["Id source"], NewSearchTerm("idsource", t.IdSource))
+	for source, id := range t.Id {
+		if len(id) != 0 {
+			ret["Id"] = append(ret["Id"], NewSearchTermMap("id", source, id))
+		}
 	}
 
 	for _, artist := range t.Artist {

@@ -7,11 +7,11 @@ require (
 	github.com/blevesearch/bleve/v2 v2.4.0
 	github.com/facette/natsort v0.0.0-20181210072756-2cd4dd1e2dcb
 	github.com/gorilla/mux v1.8.1
-	github.com/gorilla/sessions v1.2.2
+	github.com/gorilla/sessions v1.3.0
 	github.com/mholt/archiver/v4 v4.0.0-alpha.8
-	golang.org/x/crypto v0.23.0
+	golang.org/x/crypto v0.24.0
 	golang.org/x/image v0.18.0
-	golang.org/x/term v0.20.0
+	golang.org/x/term v0.21.0
 	golang.org/x/text v0.16.0
 )
 
@@ -57,5 +57,5 @@ require (
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
-	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 )

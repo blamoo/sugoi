@@ -81,11 +81,8 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	DescriptionMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("description", DescriptionMapping)
 
-	IdMapping := bleve.NewNumericFieldMapping()
-	thingMapping.AddFieldMappingsAt("id", IdMapping)
-
-	IdSourceMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("idsource", IdSourceMapping)
+	IdSourceMapping := bleve.NewKeywordFieldMapping()
+	thingMapping.AddFieldMappingsAt("id", IdSourceMapping)
 
 	LanguageMapping := bleve.NewTextFieldMapping()
 	thingMapping.AddFieldMappingsAt("language", LanguageMapping)
@@ -125,6 +122,26 @@ func BuildBleveSearchTerm(key string, val string) string {
 
 	sb.WriteString("+")
 	sb.WriteString(strings.ToLower(key))
+	sb.WriteString(`:"`)
+	sb.WriteString(inQuotesReplacer.Replace(val))
+	sb.WriteString(`"`)
+
+	return sb.String()
+}
+
+func BuildBleveSearchTermMap(key string, val string) string {
+	sb := strings.Builder{}
+
+	spl := strings.SplitN(key, ".", 2)
+
+	sb.WriteString("+")
+	if len(spl) == 2 {
+		sb.WriteString(strings.ToLower(spl[0]))
+		sb.WriteString(".")
+		sb.WriteString(spl[1])
+	} else {
+		sb.WriteString(strings.ToLower(key))
+	}
 	sb.WriteString(`:"`)
 	sb.WriteString(inQuotesReplacer.Replace(val))
 	sb.WriteString(`"`)
