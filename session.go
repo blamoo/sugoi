@@ -36,8 +36,6 @@ func CheckAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 		log.Println(err)
 	}
 
-	fmt.Println(r.Cookies())
-
 	auth, ok1 := session.Values["authenticated"].(bool)
 	user, ok2 := session.Values["user"].(string)
 
@@ -81,14 +79,12 @@ func CheckAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
 
 func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 	userBasic, failedBasic := CheckAuthBasic(w, r)
-	debugPrintf("failedBasic: %t\n", failedBasic)
 
 	if !failedBasic {
 		return userBasic, failedBasic
 	}
 
 	userSession, failedSession := CheckAuth(w, r)
-	debugPrintf("failedSession: %t\n", failedSession)
 
 	if failedSession {
 		returnPath := fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)

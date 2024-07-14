@@ -244,9 +244,7 @@ func (t *Thing) SortedTags() map[string][]SearchTerm {
 	ret := make(map[string][]SearchTerm)
 
 	for _, id := range t.Id {
-		if len(id) != 0 {
-			ret["Id"] = append(ret["Id"], NewSearchTerm("id", id))
-		}
+		ret["Id"] = append(ret["Id"], NewSearchTermInt("id", id))
 	}
 
 	for _, artist := range t.Artist {

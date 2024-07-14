@@ -64,59 +64,31 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	thingMapping := bleve.NewDocumentMapping()
 	indexMapping.DefaultMapping = thingMapping
 
-	TitleMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("title", TitleMapping)
+	textFieldMapping := bleve.NewTextFieldMapping()
+	numericFieldMapping := bleve.NewNumericFieldMapping()
+	dateTimeFieldMapping := bleve.NewDateTimeFieldMapping()
+	disabledMapping := bleve.NewDocumentDisabledMapping()
 
-	TagsMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("tags", TagsMapping)
+	thingMapping.AddFieldMappingsAt("title", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("tags", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("circle", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("artist", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("collection", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("cover", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("description", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("id", numericFieldMapping)
+	thingMapping.AddFieldMappingsAt("id_source", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("language", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("magazine", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("parody", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("publisher", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("rating", numericFieldMapping)
+	thingMapping.AddFieldMappingsAt("marks", numericFieldMapping)
+	thingMapping.AddFieldMappingsAt("type", textFieldMapping)
+	thingMapping.AddFieldMappingsAt("updated_at", dateTimeFieldMapping)
 
-	CircleMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("circle", CircleMapping)
-
-	ArtistMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("artist", ArtistMapping)
-
-	CollectionMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("collection", CollectionMapping)
-
-	CoverMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("cover", CoverMapping)
-
-	DescriptionMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("description", DescriptionMapping)
-
-	IdMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("id", IdMapping)
-
-	LanguageMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("language", LanguageMapping)
-
-	MagazineMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("magazine", MagazineMapping)
-
-	ParodyMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("parody", ParodyMapping)
-
-	PublisherMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("publisher", PublisherMapping)
-
-	RatingMapping := bleve.NewNumericFieldMapping()
-	thingMapping.AddFieldMappingsAt("rating", RatingMapping)
-
-	MarksMapping := bleve.NewNumericFieldMapping()
-	thingMapping.AddFieldMappingsAt("marks", MarksMapping)
-
-	TypeMapping := bleve.NewTextFieldMapping()
-	thingMapping.AddFieldMappingsAt("type", TypeMapping)
-
-	UpdatedAtMapping := bleve.NewDateTimeFieldMapping()
-	thingMapping.AddFieldMappingsAt("updated_at", UpdatedAtMapping)
-
-	CreatedAtMapping := bleve.NewDateTimeFieldMapping()
-	thingMapping.AddFieldMappingsAt("created_at", CreatedAtMapping)
-
-	// b, _ := json.MarshalIndent(indexMapping, "", "\t")
-	// log.Println(string(b))
+	thingMapping.AddSubDocumentMapping("files", disabledMapping)
+	thingMapping.AddSubDocumentMapping("metadataSources", disabledMapping)
 
 	return indexMapping
 }

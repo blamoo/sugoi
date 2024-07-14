@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path"
 )
 
 type ReindexJob struct {
@@ -30,6 +32,10 @@ func (job *ReindexJob) Start() error {
 
 	go func() {
 		var err error
+		bleveIndex.Close()
+		os.RemoveAll(path.Join(config.DatabaseDir, "sugoi.bleve"))
+		InitializeBleve()
+
 		batch := bleveIndex.NewBatch()
 
 		i := 0
@@ -78,6 +84,11 @@ func (job *ReindexJob) Start() error {
 			} else {
 				job.Log = append(job.Log, "100% done!")
 			}
+		}
+
+		if config.Debug {
+			v, _ := bleveIndex.Fields()
+			fmt.Println(v)
 		}
 
 		job.Running = false

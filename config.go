@@ -94,7 +94,7 @@ func InitializeConfig() error {
 	}
 
 	if len(config.SessionCookieKey) < 32 {
-		fmt.Println("SessionKey should be a base64 encoded secret byte array with at least 32 bytes")
+		fmt.Println("SessionCookieKey should be a base64 encoded secret byte array with at least 32 bytes")
 		fmt.Println("Like this:")
 		b := make([]byte, 32)
 		rand.Read(b)
