@@ -1,4 +1,4 @@
-module github.com/sugoi-reader/sugoi-reader
+module github.com/blamoo/sugoi
 
 go 1.22
 
