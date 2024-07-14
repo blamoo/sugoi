@@ -309,7 +309,10 @@ func main() {
 			session, _ := sessionStore.Get(r, config.SessionCookieName)
 			session.Values["authenticated"] = false
 			session.Values["user"] = nil
-			session.Save(r, w)
+			err := session.Save(r, w)
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		http.Redirect(w, r, "/login", http.StatusFound)

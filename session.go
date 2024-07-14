@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,6 +15,7 @@ var sessionStore *sessions.CookieStore
 
 func InitializeSession() {
 	sessionStore = sessions.NewCookieStore(config.SessionCookieKey)
+	sessionStore.Options.Secure = false
 	sessionStore.MaxAge(config.SessionCookieMaxAge)
 }
 
@@ -29,7 +31,12 @@ func CheckPasswordHash(password, hash string) bool {
 
 func CheckAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 	session, _ := sessionStore.Get(r, config.SessionCookieName)
-	session.Save(r, w)
+	err := session.Save(r, w)
+	if err != nil {
+		log.Println(err)
+	}
+
+	fmt.Println(r.Cookies())
 
 	auth, ok1 := session.Values["authenticated"].(bool)
 	user, ok2 := session.Values["user"].(string)
@@ -74,12 +81,14 @@ func CheckAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
 
 func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 	userBasic, failedBasic := CheckAuthBasic(w, r)
+	debugPrintf("failedBasic: %t\n", failedBasic)
 
 	if !failedBasic {
 		return userBasic, failedBasic
 	}
 
 	userSession, failedSession := CheckAuth(w, r)
+	debugPrintf("failedSession: %t\n", failedSession)
 
 	if failedSession {
 		returnPath := fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)
