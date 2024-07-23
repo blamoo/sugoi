@@ -32,8 +32,13 @@ func (job *ReindexJob) Start() error {
 
 	go func() {
 		var err error
+		job.Log = append(job.Log, "Closing old index")
 		bleveIndex.Close()
+
+		job.Log = append(job.Log, "Removing old index")
 		os.RemoveAll(path.Join(config.DatabaseDir, "sugoi.bleve"))
+
+		job.Log = append(job.Log, "Creating new index")
 		InitializeBleve()
 
 		batch := bleveIndex.NewBatch()

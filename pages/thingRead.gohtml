@@ -81,7 +81,10 @@
 								<kbd>4</kbd>
 								<kbd>5</kbd>
 							</td>
-							<td>Set score to 0~5 (press twice)</td>
+							<td>
+								Set score to 0~5<br/>
+								(to prevent misclicks, you have to press it twice)
+							</td>
 						</tr>
 						<tr>
 							<td><kbd>M</kbd></td>
@@ -93,7 +96,14 @@
 						</tr>
 						<tr>
 							<td><kbd>C</kbd></td>
-							<td>Set cover of the gallery to the current page (press twice)</td>
+							<td>
+								Set cover of the gallery to the current page<br />
+								(to prevent misclicks, you have to press it twice)
+							</td>
+						</tr>
+						<tr>
+							<td><kbd>R</kbd></td>
+							<td>Go back to the details page</td>
 						</tr>
 						<tr>
 							<td><kbd>F</kbd></td>
@@ -116,6 +126,10 @@
 							<td>Go to last page</td>
 						</tr>
 						<tr>
+							<td><kbd>B</kbd></td>
+							<td>Hide everything and leave</td>
+						</tr>
+						<tr>
 							<td><kbd>S</kbd></td>
 							<td>Start/stop slideshow (10 seconds)</td>
 						</tr>
@@ -129,11 +143,11 @@
 						</tr>
 						<tr>
 							<td><kbd>+</kbd></td>
-							<td>Add 1 second to slideshow delay</td>
+							<td>Increase slideshow delay by 1 second</td>
 						</tr>
 						<tr>
 							<td><kbd>-</kbd></td>
-							<td>Subtract 1 second from slideshow delay</td>
+							<td>Decrease slideshow delay by 1 second</td>
 						</tr>
 					</table>
 				</div>
@@ -309,6 +323,15 @@
 					case "s":
 					toggleSlideshow(10 * 1000);
 					event.preventDefault();
+					break;
+
+					case "b":
+					$(document.body).html("")
+					window.location.replace("https://google.com/")
+					break;
+
+					case "r":
+					window.location.href = backUrl;
 					break;
 
 					case "t":
