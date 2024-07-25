@@ -32,10 +32,6 @@ func InitializeBleve() error {
 		}
 	}
 
-	// registry.RegisterAnalyzer("FlatFuck", func(config map[string]interface{}, cache *registry.Cache) (analysis.Analyzer, error) {
-	// 	return nil, nil
-	// })
-
 	if stat == nil {
 		mapping := BuildNewMapping()
 		bleveIndex, err = bleve.New(path, mapping)

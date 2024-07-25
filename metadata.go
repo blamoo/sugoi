@@ -139,7 +139,7 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 		case "collection":
 			ret.Collection = form.Get(key)
 
-		case "parody":
+		case "parodyText":
 			ret.Parody.SetFromTextArea(form.Get(key))
 
 		case "title":
