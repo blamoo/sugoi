@@ -41,6 +41,7 @@ func Routes(router *mux.Router) {
 	router.HandleFunc("/thing/{hash:[a-z0-9]+}/subMark.json", RouteThingSubMark)
 	router.HandleFunc("/thing/read/{hash:[a-z0-9]+}{page:/?[0-9]*}", RouteThingRead)
 	router.HandleFunc("/thing/file/{hash:[a-z0-9]+}/{file:.+}", RouteThingFile)
+	router.HandleFunc("/thing/pushRead/{hash:[a-z0-9]+}", RouteThingPushRead)
 	router.HandleFunc("/system", RouteSystem)
 	router.HandleFunc("/pending", RoutePending)
 	router.HandleFunc("/favicon.ico", RouteFavicon)
@@ -305,6 +306,7 @@ func RouteThingDetailsJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(thing)
 }
+
 func RouteThingDetails(w http.ResponseWriter, r *http.Request) {
 	if _, ret := HandleAuth(w, r); ret {
 		return
@@ -797,11 +799,12 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Title string
-		Thing *Thing
-		Files []string
-		Page  int
-		Hash  string
+		Title         string
+		Thing         *Thing
+		Files         []string
+		Page          int
+		Hash          string
+		ReadThreshold int
 	}{
 		Title: thing.Title,
 		Thing: thing,
@@ -814,7 +817,47 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 		RenderError(w, r, err.Error())
 		return
 	}
+
+	data.ReadThreshold = min(24, int(math.Ceil(float64(len(data.Files))/3.0)))
+
 	RenderPage(w, r, "thingRead.gohtml", data)
+}
+
+func RouteThingPushRead(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	_, ret := CheckAuth(w, r)
+	if ret {
+		w.WriteHeader(403)
+		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
+		return
+	}
+
+	vars := mux.Vars(r)
+	vHash := vars["hash"]
+
+	thing, err := NewThingFromHash(vHash)
+	if err != nil {
+		w.WriteHeader(404)
+		json.NewEncoder(w).Encode(JsonError{err.Error()})
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		err = thing.PushRead()
+
+		if err != nil {
+			w.WriteHeader(400)
+			json.NewEncoder(w).Encode(JsonError{err.Error()})
+			return
+		}
+
+		json.NewEncoder(w).Encode(thing.ReadCount)
+		return
+	}
+
+	w.WriteHeader(405)
+	json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 }
 
 func RouteThingFile(w http.ResponseWriter, r *http.Request) {

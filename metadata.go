@@ -39,10 +39,13 @@ type FileMetadataStaticSub struct {
 }
 
 type FileMetadataDynamic struct {
-	Cover     string    `json:"cover"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Rating    int       `json:"rating"`
-	Marks     int       `json:"marks"`
+	Cover       string    `json:"cover"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Rating      int       `json:"rating"`
+	Marks       int       `json:"marks"`
+	ReadCount   int       `json:"read_count"`
+	FirstReadAt time.Time `json:"first_read_at,omitempty"`
+	LastReadAt  time.Time `json:"last_read_at,omitempty"`
 }
 
 type FileMetadata struct {

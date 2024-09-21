@@ -162,6 +162,9 @@
 		var backUrl = {{ .Thing.DetailsUrl }};
 		var title = {{ .Thing.Title }};
 		var page = {{ .Page }};
+		var readThreshold = {{ .ReadThreshold }};
+		var pagesRead = new Set();
+		var thingReadSent = false;
 
 		$(document).ready(function () {
 			var $title = $('title');
@@ -240,6 +243,16 @@
 
 				if (prevPage in pages) {
 					preloadImage(pages[prevPage]);
+				}
+	
+				pagesRead.add(i);
+				if (!thingReadSent && pagesRead.size >= readThreshold) {
+					thingReadSent = true;
+
+					$.ajax({
+						url: '/thing/pushRead/' + hash,
+						method: 'POST'
+					});
 				}
 
 				resetSlideshow();

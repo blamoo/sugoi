@@ -146,6 +146,26 @@ func (t *Thing) AddMark() error {
 	return nil
 }
 
+func (t *Thing) PushRead() error {
+	old := t.FileMetadataDynamic
+	t.ReadCount++
+
+	now := time.Now()
+	if t.FileMetadataDynamic.FirstReadAt.IsZero() {
+		t.FileMetadataDynamic.FirstReadAt = now
+	}
+	t.FileMetadataDynamic.LastReadAt = now
+
+	err := t.TrySaveDynamic()
+	if err != nil {
+		t.FileMetadataDynamic = old
+		return err
+	}
+	t.File.Reindex()
+
+	return nil
+}
+
 func (t *Thing) SubMark() error {
 	old := t.FileMetadataDynamic
 	t.Marks--
