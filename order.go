@@ -20,14 +20,15 @@ func InitializeOrder() {
 		"collection": "Collection",
 		"marks":      "Marks",
 		"pages":      "Pages",
+		"read_count": "Read count",
 	}
 
 	orderFields = append(orderFields, OrderField{"", "Score"})
 
 	for key, label := range fields {
-		orderFields = append(orderFields, OrderField{key, fmt.Sprintf("%s Asc", label)})
+		orderFields = append(orderFields, OrderField{key, fmt.Sprintf("%s asc", label)})
 		rkey := fmt.Sprintf("-%s", key)
-		orderFields = append(orderFields, OrderField{rkey, fmt.Sprintf("%s Desc", label)})
+		orderFields = append(orderFields, OrderField{rkey, fmt.Sprintf("%s desc", label)})
 	}
 }
 
