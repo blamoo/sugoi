@@ -492,12 +492,24 @@
 			function toaster(msg, timeout) {
 				timeout = timeout || 5000;
 				var $message = $('<div class="alert alert-primary" role="alert">').html(msg);
-					$message.appendTo($fullscreenToaster);
-					$message.fadeOut(timeout, "slowOut", function () {
-						$message.remove();
-					});
-				}
+				$message.appendTo($fullscreenToaster);
+				$message.fadeOut(timeout, "slowOut", function () {
+					$message.remove();
+				});
+			}
+
+			var lastMove = 0;
+			$target[0].addEventListener('mousemove', function(e) {
+				lastMove = Date.now();
+				this.style.cursor = 'pointer';
 			});
+
+			setInterval(function() {
+				if (lastMove + 3000 < Date.now()) { // 3 seconds
+					$target[0].style.cursor = 'none';
+				}
+			}, 1000);
+		});
 		</script>
 	</body>
 

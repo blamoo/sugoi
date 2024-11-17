@@ -22,10 +22,6 @@ body.thingRead #target {
     padding-top: 3px;
 }
 
-body.thingRead #target img {
-    cursor: pointer;
-}
-
 body.thingRead #fullscreenToaster {
     display: block;
     position: absolute;
