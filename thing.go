@@ -406,7 +406,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 
 	compressedFileName := t.File.RealLocation()
 
-	fsys, err := archiver.FileSystem(context.TODO(), compressedFileName, nil)
+	fsys, err := archiver.FileSystem(context.Background(), compressedFileName)
 
 	if err != nil {
 		return nil, err
@@ -444,15 +444,19 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 
 	f.Close()
 
-	f, err = os.Create(fname)
-	if err == nil {
-		defer f.Close()
-
-		filesJoin := strings.Join(files, "\n")
-		n, err := io.WriteString(f, filesJoin)
+	if len(files) > 0 {
+		f, err = os.Create(fname)
 		if err == nil {
-			debugPrintf("File list cache write (%d bytes): %s\n", n, fname)
+			defer f.Close()
+
+			filesJoin := strings.Join(files, "\n")
+			n, err := io.WriteString(f, filesJoin)
+			if err == nil {
+				debugPrintf("File list cache write (%d bytes): %s\n", n, fname)
+			}
 		}
+	} else {
+		debugPrintf("Not writing empty file list cache: %s\n", fname)
 	}
 
 	return files, nil
@@ -464,7 +468,7 @@ func (t *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 	if len(file) > 0 && file[len(file)-1] != '/' {
 		compressedFileName := path.Clean(path.Join(t.File.RealLocation()))
 
-		fsys, err := archiver.FileSystem(context.TODO(), compressedFileName, nil)
+		fsys, err := archiver.FileSystem(context.Background(), compressedFileName)
 		if err != nil {
 			return nil, closers, err
 		}
