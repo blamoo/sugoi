@@ -51,6 +51,7 @@ type FileMetadataDynamic struct {
 type FileMetadata struct {
 	FileMetadataStatic
 	FileMetadataDynamic
+	Random map[string]int `json:"random,omitempty"`
 }
 
 func CreateMetadataEmptyFile(file string) error {

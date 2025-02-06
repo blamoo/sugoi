@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"math/rand/v2"
 	"mime"
 	"net/http"
 	"net/url"
@@ -136,6 +137,30 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 	data.Title = titleBuilder.String()
 
 	search := bleve.NewSearchRequest(query)
+
+	if ok, _ := strconv.ParseBool(r.FormValue("random")); ok {
+		sort := "random." + strconv.Itoa(rand.IntN(RANDOM_POOL_SIZE))
+		search.SortBy([]string{sort})
+		search.Size = RANDOM_SAMPLE_SIZE
+
+		searchResults, err := bleveIndex.Search(search)
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+		hits := len(searchResults.Hits)
+		pick := rand.IntN(hits)
+		hash := searchResults.Hits[pick].ID
+		thing, err := NewThingFromHash(hash)
+		if err != nil {
+			RenderError(w, r, err.Error())
+			return
+		}
+
+		http.Redirect(w, r, thing.ReadUrl(), http.StatusFound)
+		return
+	}
+
 	search.Size = pageSize + 1
 	search.From = data.Page * pageSize
 	search.Fields = []string{"*"}

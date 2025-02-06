@@ -12,6 +12,9 @@ import (
 
 var config SugoiConfig
 
+const RANDOM_POOL_SIZE = 10
+const RANDOM_SAMPLE_SIZE = 1000
+
 type SugoiConfig struct {
 	Debug                bool
 	CacheThumbnails      bool

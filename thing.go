@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/facette/natsort"
-	"github.com/mholt/archiver/v4"
+	"github.com/mholt/archives"
 )
 
 type Thing struct {
@@ -406,7 +406,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 
 	compressedFileName := t.File.RealLocation()
 
-	fsys, err := archiver.FileSystem(context.Background(), compressedFileName)
+	fsys, err := archives.FileSystem(context.Background(), compressedFileName, nil)
 
 	if err != nil {
 		return nil, err
@@ -468,7 +468,7 @@ func (t *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 	if len(file) > 0 && file[len(file)-1] != '/' {
 		compressedFileName := path.Clean(path.Join(t.File.RealLocation()))
 
-		fsys, err := archiver.FileSystem(context.Background(), compressedFileName)
+		fsys, err := archives.FileSystem(context.Background(), compressedFileName, nil)
 		if err != nil {
 			return nil, closers, err
 		}

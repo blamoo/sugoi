@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"math/rand/v2"
 	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
@@ -187,6 +189,12 @@ func (fp *FilePointer) BuildReindexDoc() FileMetadata {
 		file.FileMetadataDynamic = *dynamic
 	}
 	file.FileMetadataDynamic.FillEmptyFields(fp)
+
+	file.Random = make(map[string]int, RANDOM_POOL_SIZE)
+	for i := 0; i < RANDOM_POOL_SIZE; i++ {
+		k := strconv.Itoa(i)
+		file.Random[k] = rand.Int()
+	}
 
 	return file
 }
