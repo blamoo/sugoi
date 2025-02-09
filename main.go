@@ -17,6 +17,8 @@ import (
 	"golang.org/x/term"
 )
 
+//go:generate go run cmd/static/main.go
+
 var configPath string
 var filePointers FilePointerList
 var bleveIndex bleve.Index

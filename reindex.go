@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 )
 
 type ReindexJob struct {
 	Running       bool
 	RequestCancel bool `json:"-"`
+	FinishTime    time.Time
 	Processed     int
 	Total         int
 	Error         int
@@ -87,7 +89,7 @@ func (job *ReindexJob) Start() error {
 			if err != nil {
 				job.Log = append(job.Log, fmt.Sprintf("Error: %s", err.Error()))
 			} else {
-				job.Log = append(job.Log, "100% done!")
+				job.Log = append(job.Log, "Reindex finished")
 			}
 		}
 
@@ -96,6 +98,7 @@ func (job *ReindexJob) Start() error {
 			fmt.Println(v)
 		}
 
+		job.FinishTime = time.Now()
 		job.Running = false
 	}()
 

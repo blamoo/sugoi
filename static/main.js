@@ -114,6 +114,26 @@ function updateBrandButton() {
 
 $(document).ready(function (e) {
     updateBrandButton();
+
+    var $reindexStatus = $('#reindexStatus');
+    var updateReindexStatus = function () {
+        $.get('/system/reindexStatus').done(function (data) {
+            if (data.Message) {
+                $reindexStatus.show().html(data.Message);
+            } else {
+                $reindexStatus.hide().html('');
+            }
+            
+            if (data.Stop) {
+                $reindexStatus.hide().html('');
+                clearInterval(statusInterval);
+                return;
+            }
+        });
+    }
+
+    var statusInterval = setInterval(updateReindexStatus, 5000);
+    updateReindexStatus();
 })
 
 function loadingAlert() {

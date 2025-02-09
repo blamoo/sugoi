@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bamiaux/rez"
 	"github.com/blevesearch/bleve/v2"
@@ -44,6 +45,7 @@ func Routes(router *mux.Router) {
 	router.HandleFunc("/thing/file/{hash:[a-z0-9]+}/{file:.+}", RouteThingFile)
 	router.HandleFunc("/thing/pushRead/{hash:[a-z0-9]+}", RouteThingPushRead)
 	router.HandleFunc("/system", RouteSystem)
+	router.HandleFunc("/system/reindexStatus", RouteSystemReindexStatus)
 	router.HandleFunc("/pending", RoutePending)
 	router.HandleFunc("/favicon.ico", RouteFavicon)
 }
@@ -1048,6 +1050,30 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RenderPage(w, r, "system.gohtml", data)
+}
+
+func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
+	_, notLoggedIn := CheckAuth(w, r)
+
+	data := struct {
+		Stop    bool   `json:"Stop,omitempty"`
+		Message string `json:"Message,omitempty"`
+	}{}
+
+	if notLoggedIn || len(reindexJob.Log) == 0 {
+		data.Stop = true
+	} else {
+		dtLimit := reindexJob.FinishTime.Add(time.Minute)
+
+		if time.Now().After(dtLimit) {
+			data.Stop = true
+		} else {
+			data.Message = reindexJob.Log[len(reindexJob.Log)-1]
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }
 
 func RoutePending(w http.ResponseWriter, r *http.Request) {
