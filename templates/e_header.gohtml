@@ -3,12 +3,11 @@
 		<div class="container">
 			<a href="/" id="brandButton" class="navbar-brand">Sugoi</a>
 
-
-			<div class="d-flex flex-row align-items-center">
-				<small class="badge bg-info me-2" style="display: none" id="reindexStatus"></small>
+			<div class="flex-row align-items-center" id="userMenu" style="display: flex">
+				<a href="/system?action=reindexStatus" class="badge bg-info text-decoration-none me-2" style="display: none" id="reindexStatus"></a>
 				<a href="/system" class="btn btn-info me-1"><i class="fa-solid fa-cog"></i></a>
 				
-				<form id="logoutForm" action="/logout" method="POST">
+				<form action="/logout" method="POST">
 					<button type="submit" class="btn btn-secondary">Logout</button>
 				</form>
 			</div>
