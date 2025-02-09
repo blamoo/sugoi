@@ -1065,7 +1065,7 @@ func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
 	} else {
 		dtLimit := reindexJob.FinishTime.Add(time.Minute)
 
-		if time.Now().After(dtLimit) {
+		if !reindexJob.Running && time.Now().After(dtLimit) {
 			data.Stop = true
 		} else {
 			data.Message = reindexJob.Log[len(reindexJob.Log)-1]
