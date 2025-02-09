@@ -87,7 +87,7 @@ func (job *ReindexJob) Start() error {
 			if err != nil {
 				job.Log = append(job.Log, fmt.Sprintf("Error: %s", err.Error()))
 			} else {
-				job.Log = append(job.Log, "(100%) Finished")
+				job.Log = append(job.Log, "Reindex finished")
 			}
 		}
 
