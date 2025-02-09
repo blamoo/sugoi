@@ -1063,7 +1063,7 @@ func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
 	if notLoggedIn || len(reindexJob.Log) == 0 {
 		data.Stop = true
 	} else {
-		dtLimit := reindexJob.FinishTime.Add(time.Minute)
+		dtLimit := reindexJob.FinishTime.Add(time.Second * 30)
 
 		if !reindexJob.Running && time.Now().After(dtLimit) {
 			data.Stop = true
