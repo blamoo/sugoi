@@ -196,11 +196,15 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 
 	for _, facet := range searchResults.Facets {
 		for _, term := range facet.Terms.Terms() {
+			if len(term.Term) == 0 {
+				continue
+			}
+
 			name, _ := strings.CutSuffix(facet.Field, "_kw")
-			u := NewSearchTerm(name, term.Term)
-			u.Count = term.Count
-			u.Weight = slices.Index(metadataKeywordsFields, name)
-			data.SearchTags = append(data.SearchTags, u)
+			searchTerm := NewSearchTerm(name, term.Term)
+			searchTerm.Count = term.Count
+			searchTerm.Weight = slices.Index(metadataKeywordsFields, name)
+			data.SearchTags = append(data.SearchTags, searchTerm)
 		}
 	}
 
