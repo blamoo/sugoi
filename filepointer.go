@@ -196,5 +196,11 @@ func (fp *FilePointer) BuildReindexDoc() FileMetadata {
 		file.Random[k] = rand.Int()
 	}
 
+	file.CollectionKw = file.Collection
+	file.TagsKw = file.Tags
+	file.ArtistKw = file.Artist
+	file.ParodyKw = file.Parody
+	file.MagazineKw = file.Magazine
+
 	return file
 }

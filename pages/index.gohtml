@@ -49,69 +49,140 @@
 		</form>
 
 		{{if .Things}}
+			<div class="d-flex justify-content-between">
+				{{ template "pagination" . }}
+				{{ if eq .Hits 1 }}
+					1 result
+				{{ else }}
+					{{ .Hits }} results
+				{{ end }}
+			</div>
 
-		<div class="d-flex justify-content-between">
-			{{ template "pagination" . }}
-			{{ if eq .Hits 1 }}
-				1 result
-			{{ else }}
-				{{ .Hits }} results
-			{{ end }}
-		</div>
+			{{if eq .Format "table"}}
+				<table class="table table-sm table-bordered table-striped table-hover mb-3">
+					<thead>
+						<tr>
+							<th>Title</th>
+							<th class="text-center">Collection</th>
+							<th class="text-center">Rating</th>
+							<th class="text-center">Pages</th>
+							<th class="text-center">Details</th>
+						</tr>
+					</thead>
+					<tbody>
+						{{range .Things}}
+						{{
+							$title := print "Updated at: " (.UpdatedAt.Format "02/01/2006 15:04") "\nCreated at: " (.CreatedAt.Format "02/01/2006 15:04")
+						}}
+						<tr title="{{$title}}">
+							<td class="align-middle">
+								<a href="{{.ReadUrl}}" class="d-inline-block">{{.Title}}</a>
+								{{if ne .Marks 0}}
+									<span class="badge rounded-pill bg-success">{{.Marks}}</span>
+								{{end}}
+							</td>
+							<td class="text-center text-nowrap">
+								{{if .Collection}}
+								<a class="btn btn-sm btn-primary" href="{{.CollectionDetailsUrl}}">{{.Collection}}</a>
+								{{end}}
+							</td>
+							<td class="text-center text-nowrap">
+								{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
+								{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
+							</td>
+							<td class="text-center">
+								{{.Pages}}
+							</td>
+							<td class="text-center">
+								<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary">Details</a>
+							</td>
+						</tr>
+						{{end}}
+					</tbody>
+				</table>
+			{{else if eq .Format "full"}}
+				{{range .Things}}
+					<div class="row">
+						<div class="col-md-3 col-12 mb-3">
+							<div class="card flex-column">
+								<div class="card-body p-0 text-center">
+									<a href="{{.ReadUrl}}" class="d-inline-block">
+										<img src="{{.ThumbUrl .CoverImageUrl}}" class="img-fluid" alt="Cover" />
+									</a>
+								</div>
+								<div class="card-footer d-flex flex-wrap justify-content-between p-1">
+									<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary text-center w-100">Details</a>
+									<div class="m-1  text-center w-100">
+										{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
+										{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="col-md-9 col-12 mb-3">
+							<h2 class="text-110">
+								{{.Title}}
+								{{if ne .Marks 0}}
+									<span class="badge rounded-pill bg-success">{{.Marks}}</span>
+								{{end}}
+							</h2>
+							{{if .Collection}}
+							<p>
+								<a class="btn btn-sm btn-primary" href="{{.CollectionDetailsUrl}}">{{.Collection}}</a>
+							</p>
+							{{end}}
 
-		{{if eq .Format "table"}}
-			<table class="table table-sm table-bordered table-striped table-hover mb-3">
-				<thead>
-					<tr>
-						<th>Title</th>
-						<th class="text-center">Collection</th>
-						<th class="text-center">Rating</th>
-						<th class="text-center">Pages</th>
-						<th class="text-center">Details</th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Things}}
-					{{
-						$title := print "Updated at: " (.UpdatedAt.Format "02/01/2006 15:04") "\nCreated at: " (.CreatedAt.Format "02/01/2006 15:04")
-					}}
-					<tr title="{{$title}}">
-						<td class="align-middle">
-							<a href="{{.ReadUrl}}" class="d-inline-block">{{.Title}}</a>
+							{{if .Description}}
+								<div class="card mb-3">
+									<div class="card-body">
+										{{.Description}}
+									</div>
+								</div>
+							{{end}}
+							
+							<table class="table table-sm table-bordered table-striped mb-3">
+								{{ range $typeName, $type := .SortedTags }}
+								<tr>
+									<td class="text-right">
+										{{$typeName}}
+									</td>
+									<td>
+										{{ range $type }}
+										<a class="badge bg-primary text-decoration-none" href="{{.Url}}">{{.Label}}</a>
+										{{ end }}
+									</td>
+								</tr>
+								{{end}}
+								<tr>
+									<td class="text-right text-nowrap">Read count</td>
+									<td>{{.ReadCount}}</td>
+								</tr>
+								<tr>
+									<td class="text-right">Pages</td>
+									<td>{{.Pages}}</td>
+								</tr>
+							</table>
+						</div>
+					</div>
+				{{end}}
+			{{else}}
+			<div class="row">
+				{{range .Things}}
+				<div class="col-12 col-md-3 d-flex">
+					<div class="card mb-4 flex-column flex-fill">
+						<h2 class="card-header p-1 small text-center">
+							{{.Title}}
 							{{if ne .Marks 0}}
 								<span class="badge rounded-pill bg-success">{{.Marks}}</span>
 							{{end}}
-						</td>
-						<td class="text-center text-nowrap">
-							{{if .Collection}}
-							<a class="btn btn-sm btn-primary" href="{{.CollectionDetailsUrl}}">{{.Collection}}</a>
-							{{end}}
-						</td>
-						<td class="text-center text-nowrap">
-							{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
-							{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
-						</td>
-						<td class="text-center">
-							{{.Pages}}
-						</td>
-						<td class="text-center">
-							<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary">Details</a>
-						</td>
-					</tr>
-					{{end}}
-				</tbody>
-			</table>
-		{{else if eq .Format "full"}}
-			{{range .Things}}
-				<div class="row">
-					<div class="col-md-3 col-12 mb-3">
-						<div class="card flex-column">
-							<div class="card-body p-0 text-center">
-								<a href="{{.ReadUrl}}" class="d-inline-block">
-									<img src="{{.ThumbUrl .CoverImageUrl}}" class="img-fluid" alt="Cover" />
-								</a>
-							</div>
-							<div class="card-footer d-flex flex-wrap justify-content-between p-1">
+						</h2>
+						<div class="card-body p-0 d-flex justify-content-center">
+							<a href="{{.ReadUrl}}" class="d-inline-block">
+								<img src="{{.ThumbUrl .CoverImageUrl}}" class="img-fluid" alt="Cover" />
+							</a>
+						</div>
+						<div class="card-footer p-1">
+							<div class="d-flex flex-wrap justify-content-between">
 								<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary text-center w-100">Details</a>
 								<div class="m-1  text-center w-100">
 									{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
@@ -120,91 +191,29 @@
 							</div>
 						</div>
 					</div>
-					<div class="col-md-9 col-12 mb-3">
-						<h2 class="text-110">
-							{{.Title}}
-							{{if ne .Marks 0}}
-								<span class="badge rounded-pill bg-success">{{.Marks}}</span>
-							{{end}}
-						</h2>
-						{{if .Collection}}
-						<p>
-							<a class="btn btn-sm btn-primary" href="{{.CollectionDetailsUrl}}">{{.Collection}}</a>
-						</p>
-						{{end}}
-
-						{{if .Description}}
-							<div class="card mb-3">
-								<div class="card-body">
-									{{.Description}}
-								</div>
-							</div>
-						{{end}}
-						
-						<table class="table table-sm table-bordered table-striped mb-3">
-							{{ range $typeName, $type := .SortedTags }}
-							<tr>
-								<td class="text-right">
-									{{$typeName}}
-								</td>
-								<td>
-									{{ range $type }}
-									<a class="badge bg-primary text-decoration-none" href="{{.Url}}">{{.Label}}</a>
-									{{ end }}
-								</td>
-							</tr>
-							{{end}}
-							<tr>
-								<td class="text-right text-nowrap">Read count</td>
-								<td>{{.ReadCount}}</td>
-							</tr>
-							<tr>
-								<td class="text-right">Pages</td>
-								<td>{{.Pages}}</td>
-							</tr>
-						</table>
-					</div>
 				</div>
-			{{end}}
-		{{else}}
-		<div class="row">
-			{{range .Things}}
-			<div class="col-12 col-md-3 d-flex">
-				<div class="card mb-4 flex-column flex-fill">
-					<h2 class="card-header p-1 small text-center">
-						{{.Title}}
-						{{if ne .Marks 0}}
-							<span class="badge rounded-pill bg-success">{{.Marks}}</span>
-						{{end}}
-					</h2>
-					<div class="card-body p-0 d-flex justify-content-center">
-						<a href="{{.ReadUrl}}" class="d-inline-block">
-							<img src="{{.ThumbUrl .CoverImageUrl}}" class="img-fluid" alt="Cover" />
-						</a>
-					</div>
-					<div class="card-footer p-1">
-						<div class="d-flex flex-wrap justify-content-between">
-							<a href="{{.DetailsUrl}}" class="btn btn-sm btn-primary text-center w-100">Details</a>
-							<div class="m-1  text-center w-100">
-								{{- noescape (.FilledStarsRepeat "<i class=\"fa-solid fa-star text-gold\"></i>") -}}
-								{{- noescape (.EmptyStarsRepeat "<i class=\"fa-regular fa-star\"></i>") -}}
-							</div>
-						</div>
-					</div>
-				</div>
+				{{end}}
 			</div>
 			{{end}}
-		</div>
-		{{end}}
-		<div class="d-flex justify-content-center">
-			{{template "pagination" .}}
-		</div>
+			
+			<div class="d-flex justify-content-center">
+				{{template "pagination" .}}
+			</div>
+
+			<div class="card mb-3">
+				<div class="card-body">
+					{{range .SearchTags}}
+					{{ noescape .Badge }}
+					{{end}}
+				</div>
+			</div>
 		{{else}}
-		<div class="alert alert-danger" role="alert">
-			No results
-		</div>
+			<div class="alert alert-danger" role="alert">
+				No results
+			</div>
 		{{end}}
 	</div>
+
 	{{template "e_footer.gohtml" .}}
 	<script>
 		$(document).ready(function() {

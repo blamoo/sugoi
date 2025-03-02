@@ -64,6 +64,7 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	numericFieldMapping := bleve.NewNumericFieldMapping()
 	dateTimeFieldMapping := bleve.NewDateTimeFieldMapping()
 	disabledMapping := bleve.NewDocumentDisabledMapping()
+	keywordMapping := bleve.NewKeywordFieldMapping()
 
 	thingMapping.AddFieldMappingsAt("title", textFieldMapping)
 	thingMapping.AddFieldMappingsAt("tags", textFieldMapping)
@@ -85,6 +86,10 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 
 	thingMapping.AddSubDocumentMapping("files", disabledMapping)
 	thingMapping.AddSubDocumentMapping("metadataSources", disabledMapping)
+
+	for _, name := range metadataKeywordsFields {
+		thingMapping.AddFieldMappingsAt(name+"_kw", keywordMapping)
+	}
 
 	return indexMapping
 }

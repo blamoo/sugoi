@@ -75,3 +75,23 @@ button.rateButton {
 button.rateButton.active {
     color: rgb(218, 166, 35);
 }
+
+.bg-tag-artist {
+    background-color: #c00;
+}
+
+.bg-tag-collection {
+    background-color: #0a2;
+}
+
+.bg-tag-magazine {
+    background-color: #f90;
+}
+
+.bg-tag-parody {
+    background-color: #a0a;
+}
+
+.bg-tag-tags {
+    background-color: #07f;
+}

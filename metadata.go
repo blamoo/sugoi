@@ -48,9 +48,26 @@ type FileMetadataDynamic struct {
 	LastReadAt  time.Time `json:"last_read_at,omitempty"`
 }
 
+var metadataKeywordsFields = []string{
+	"tags",
+	"artist",
+	"parody",
+	"magazine",
+	"collection",
+}
+
+type KeywordsMetadata struct {
+	CollectionKw string      `json:"collection_kw" schema:"collection_kw"`
+	TagsKw       StringArray `json:"tags_kw" schema:"tags_kw"`
+	ArtistKw     StringArray `json:"artist_kw" schema:"artist_kw"`
+	ParodyKw     StringArray `json:"parody_kw" schema:"parody_kw"`
+	MagazineKw   StringArray `json:"magazine_kw" schema:"magazine_kw"`
+}
+
 type FileMetadata struct {
 	FileMetadataStatic
 	FileMetadataDynamic
+	KeywordsMetadata
 	Random map[string]int `json:"random,omitempty"`
 }
 

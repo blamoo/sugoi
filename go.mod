@@ -1,6 +1,8 @@
 module github.com/blamoo/sugoi
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.0
 
 require (
 	github.com/bamiaux/rez v0.0.0-20170731184118-29f4463c688b
@@ -9,7 +11,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/sessions v1.4.0
 	github.com/mholt/archives v0.1.0
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/image v0.24.0
 	golang.org/x/term v0.29.0
 	golang.org/x/text v0.22.0

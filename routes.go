@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -68,6 +70,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		Order          string
 		Search         string
 		Hits           uint64
+		SearchTags     []SearchTerm
 	}{
 		Title:          "Home",
 		HasNext:        false,
@@ -100,7 +103,6 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		data.Format = "full"
 		pageSize = 50
 
-	// case "covers":
 	default:
 		data.Format = "covers"
 		pageSize = 48
@@ -165,7 +167,11 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 
 	search.Size = pageSize + 1
 	search.From = data.Page * pageSize
-	search.Fields = []string{"*"}
+	if fDebug == "raw" {
+		search.Fields = []string{"*"}
+	} else {
+		search.Fields = []string{"ID"}
+	}
 
 	if data.Order != "" {
 		search.SortBy([]string{data.Order})
@@ -177,12 +183,46 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, field := range metadataKeywordsFields {
+		search.AddFacet(field, bleve.NewFacetRequest(field+"_kw", 50))
+	}
+
 	searchResults, err := bleveIndex.Search(search)
 	if err != nil {
 		RenderError(w, r, err.Error())
 		return
 	}
 	data.Hits = searchResults.Total
+
+	for _, facet := range searchResults.Facets {
+		for _, term := range facet.Terms.Terms() {
+			name, _ := strings.CutSuffix(facet.Field, "_kw")
+			u := NewSearchTerm(name, term.Term)
+			u.Count = term.Count
+			u.Weight = slices.Index(metadataKeywordsFields, name)
+			data.SearchTags = append(data.SearchTags, u)
+		}
+	}
+
+	sort.SliceStable(data.SearchTags, func(i, j int) bool {
+		return data.SearchTags[i].Count > data.SearchTags[j].Count
+	})
+
+	if len(data.SearchTags) > 100 {
+		data.SearchTags = data.SearchTags[:100]
+	}
+
+	sort.SliceStable(data.SearchTags, func(i, j int) bool {
+		// if data.SearchTags[i].Weight != data.SearchTags[j].Weight {
+		// 	return data.SearchTags[i].Weight < data.SearchTags[j].Weight
+		// }
+
+		if data.SearchTags[i].Count != data.SearchTags[j].Count {
+			return data.SearchTags[i].Count > data.SearchTags[j].Count
+		}
+
+		return data.SearchTags[i].Label > data.SearchTags[j].Label
+	})
 
 	if fDebug == "raw" {
 		w.Header().Set("Content-Type", "application/json")

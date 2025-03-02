@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"html"
 	"net/url"
 	"strconv"
 )
@@ -13,12 +15,14 @@ const TYPE_TEXT SearchTermType = 1
 // const TYPE_MAP SearchTermType = 2
 
 type SearchTerm struct {
-	Key   string
-	Label string
-	Type  SearchTermType
+	Key    string
+	Label  string
+	Type   SearchTermType
+	Count  int
+	Weight int
 }
 
-func (t *SearchTerm) Url() string {
+func (t SearchTerm) Url() string {
 	u := new(url.URL)
 	u.Path = "/"
 	q := u.Query()
@@ -36,6 +40,10 @@ func (t *SearchTerm) Url() string {
 
 	u.RawQuery = q.Encode()
 	return u.String()
+}
+
+func (t SearchTerm) Badge() string {
+	return fmt.Sprintf(`<a class="badge bg-tag-%s text-decoration-none" href="%s">%s <small>(%d)</small></a>`, t.Key, html.EscapeString(t.Url()), html.EscapeString(t.Label), t.Count)
 }
 
 func NewSearchTerm(key string, val string) SearchTerm {
