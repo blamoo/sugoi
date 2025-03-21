@@ -86,10 +86,9 @@ func (w HentagV1Work) FillMetadata(ret *FileMetadataStatic) {
 		ret.CreatedAt = time.UnixMilli(w.CreatedAt)
 	}
 
-	ret.MetadataSources = make(map[string]string)
 	for _, location := range w.Locations {
 		if strings.HasPrefix(location, "https://hentag.com/") {
-			ret.MetadataSources["HentagV1"] = location
+			ret.Urls = append(ret.Urls, location)
 		}
 	}
 }

@@ -1,0 +1,73 @@
+<h2 class="text-110">
+    {{.Thing.Title}}
+</h2>
+
+{{if .Thing.Collection}}
+<p>
+    <a class="btn btn-sm btn-primary" href="{{.Thing.CollectionDetailsUrl}}">{{.Thing.Collection}}</a>
+</p>
+{{end}}
+
+{{if .Thing.Description}}
+<div class="card mb-3">
+    <div class="card-body">
+        {{.Thing.Description}}
+    </div>
+</div>
+{{end}}
+
+<table class="table table-sm table-bordered table-striped mb-3">
+
+    {{ range $typeName, $type := .Thing.SortedTags }}
+        <tr>
+            <td class="text-right">
+                {{$typeName}}
+            </td>
+            <td>
+                {{ range $type }}
+                    <a class="badge bg-primary text-decoration-none" href="{{.Url}}">{{.Label}}</a>
+                {{ end }}
+            </td>
+        </tr>
+    {{end}}
+    {{if not .NoMarks}}
+        <tr>
+            <td class="text-right">Marks</td>
+            <td>
+                <div class="input-group input-group-sm" data-marks-input="{{.Thing.File.Hash}}">
+                    <button class="btn btn-primary" type="button" data-marks-sub><i class="fa-solid fa-minus"></i></button>
+                    <span class="input-group-text border border-secondary bg-secondary text-white" data-marks>{{.Thing.Marks}}</span>
+                    <button class="btn btn-primary" type="button" data-marks-add><i class="fa-solid fa-plus"></i></button>
+                </div>
+            </td>
+        </tr>
+    {{end}}
+    {{if .Thing.Series}}
+        <tr>
+            <td class="text-right text-nowrap">Series</td>
+            <td>
+                {{ range $url, $name := .Thing.SeriesUrls }}
+                    <a class="badge bg-primary text-decoration-none" href="{{$url}}">{{$name}}</a>
+                {{end}}
+            </td>
+        </tr>
+    {{end}}
+    {{if .Thing.Urls}}
+        <tr>
+            <td class="text-right text-nowrap">URLs</td>
+            <td>
+                {{ range $html := .Thing.UrlButtons }}
+                    {{$html}}
+                {{end}}
+            </td>
+        </tr>
+    {{end}}
+    <tr>
+        <td class="text-right text-nowrap">Read count</td>
+        <td>{{.Thing.ReadCount}}</td>
+    </tr>
+    <tr>
+        <td class="text-right">Pages</td>
+        <td>{{.Thing.Pages}}</td>
+    </tr>
+</table>

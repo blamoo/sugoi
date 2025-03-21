@@ -10,28 +10,28 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"strings"
 	"time"
 )
 
 type FileMetadataStatic struct {
-	Id              []int             `json:"id" schema:"id"`
-	IdSource        IdArray           `json:"id_source" schema:"id_source"`
-	Collection      string            `json:"collection" schema:"collection"`
-	Title           string            `json:"title" schema:"title"`
-	Tags            StringArray       `json:"tags" schema:"tags"`
-	Language        string            `json:"language" schema:"language"`
-	Artist          StringArray       `json:"artist" schema:"artist"`
-	Circle          StringArray       `json:"circle" schema:"circle"`
-	CreatedAt       time.Time         `json:"created_at" schema:"created_at"`
-	Parody          StringArray       `json:"parody" schema:"parody"`
-	Magazine        StringArray       `json:"magazine" schema:"magazine"`
-	Publisher       StringArray       `json:"publisher" schema:"publisher"`
-	Description     string            `json:"description" schema:"description"`
-	Pages           int               `json:"pages" schema:"pages"`
-	Thumbnail       int               `json:"thumbnail" schema:"thumbnail"`
-	MetadataSources map[string]string `json:"metadataSources" schema:"metadataSources"`
-	Files           StringArray       `json:"files" schema:"files"`
+	Id          []int       `json:"id" schema:"id"`
+	IdSource    IdArray     `json:"id_source" schema:"id_source"`
+	Collection  string      `json:"collection" schema:"collection"`
+	Title       string      `json:"title" schema:"title"`
+	Tags        StringArray `json:"tags" schema:"tags"`
+	Language    string      `json:"language" schema:"language"`
+	Artist      StringArray `json:"artist" schema:"artist"`
+	Circle      StringArray `json:"circle" schema:"circle"`
+	Series      StringArray `json:"series" schema:"series"`
+	CreatedAt   time.Time   `json:"created_at" schema:"created_at"`
+	Parody      StringArray `json:"parody" schema:"parody"`
+	Magazine    StringArray `json:"magazine" schema:"magazine"`
+	Publisher   StringArray `json:"publisher" schema:"publisher"`
+	Description string      `json:"description" schema:"description"`
+	Pages       int         `json:"pages" schema:"pages"`
+	Thumbnail   int         `json:"thumbnail" schema:"thumbnail"`
+	Urls        StringArray `json:"urls" schema:"urls"`
+	Files       StringArray `json:"files" schema:"files"`
 }
 
 type FileMetadataStaticSub struct {
@@ -178,27 +178,11 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 		case "tagsText":
 			ret.Tags.SetFromTextArea(form.Get(key))
 
-		case "metadataText":
-			tags := strings.Split(form.Get(key), "\n")
-			ret.MetadataSources = make(map[string]string)
+		case "urlsText":
+			ret.Urls.SetFromTextArea(form.Get(key))
 
-			for _, kv := range tags {
-				kv = strings.TrimSpace(kv)
-
-				if len(kv) == 0 {
-					continue
-				}
-
-				split := strings.SplitN(kv, ":", 2)
-				if len(split) != 2 {
-					return ret, fmt.Errorf("invalid metadata %s (expected format: 'key:value')", kv)
-				}
-
-				split[0] = strings.TrimSpace(split[0])
-				split[1] = strings.TrimSpace(split[1])
-
-				ret.MetadataSources[split[0]] = split[1]
-			}
+		case "seriesText":
+			ret.Series.SetFromTextArea(form.Get(key))
 		}
 	}
 

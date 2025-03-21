@@ -95,3 +95,8 @@ button.rateButton.active {
 .bg-tag-tags {
     background-color: #07f;
 }
+
+.source-icon {
+    width: 20px;
+    height: 20px;
+}

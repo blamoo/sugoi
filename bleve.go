@@ -83,9 +83,10 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	thingMapping.AddFieldMappingsAt("marks", numericFieldMapping)
 	thingMapping.AddFieldMappingsAt("type", textFieldMapping)
 	thingMapping.AddFieldMappingsAt("updated_at", dateTimeFieldMapping)
+	thingMapping.AddFieldMappingsAt("series", keywordMapping)
 
 	thingMapping.AddSubDocumentMapping("files", disabledMapping)
-	thingMapping.AddSubDocumentMapping("metadataSources", disabledMapping)
+	thingMapping.AddSubDocumentMapping("urls", disabledMapping)
 
 	for _, name := range metadataKeywordsFields {
 		thingMapping.AddFieldMappingsAt(name+"_kw", keywordMapping)

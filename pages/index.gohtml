@@ -119,49 +119,8 @@
 								</div>
 							</div>
 						</div>
-						<div class="col-md-9 col-12 mb-3">
-							<h2 class="text-110">
-								{{.Title}}
-								{{if ne .Marks 0}}
-									<span class="badge rounded-pill bg-success">{{.Marks}}</span>
-								{{end}}
-							</h2>
-							{{if .Collection}}
-							<p>
-								<a class="btn btn-sm btn-primary" href="{{.CollectionDetailsUrl}}">{{.Collection}}</a>
-							</p>
-							{{end}}
-
-							{{if .Description}}
-								<div class="card mb-3">
-									<div class="card-body">
-										{{.Description}}
-									</div>
-								</div>
-							{{end}}
-							
-							<table class="table table-sm table-bordered table-striped mb-3">
-								{{ range $typeName, $type := .SortedTags }}
-								<tr>
-									<td class="text-right">
-										{{$typeName}}
-									</td>
-									<td>
-										{{ range $type }}
-										<a class="badge bg-primary text-decoration-none" href="{{.Url}}">{{.Label}}</a>
-										{{ end }}
-									</td>
-								</tr>
-								{{end}}
-								<tr>
-									<td class="text-right text-nowrap">Read count</td>
-									<td>{{.ReadCount}}</td>
-								</tr>
-								<tr>
-									<td class="text-right">Pages</td>
-									<td>{{.Pages}}</td>
-								</tr>
-							</table>
+						<div class="col-md-9 col-12 mb-3">								
+							{{.HtmlTable "nomarks"}}
 						</div>
 					</div>
 				{{end}}
@@ -203,7 +162,7 @@
 			<div class="card mb-3">
 				<div class="card-body">
 					{{range .SearchTags}}
-					{{ noescape .Badge }}
+						{{ .Badge }}
 					{{end}}
 				</div>
 			</div>

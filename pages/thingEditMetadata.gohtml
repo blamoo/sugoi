@@ -101,14 +101,26 @@
 						</div>
 					</div>
 					<div class="mb-2">
-						<label>Metadata Sources</label>
-						<textarea class="form-control fs-14px p-1" name="metadataText">
-							{{- range $service, $id := .Metadata.MetadataSources -}}
-								{{- $service -}}:{{- $id -}}
+						<label>Series</label>
+						<div>
+							<textarea rows="6" class="form-control fs-14px p-1" name="seriesText">
+								{{- range $val := .Metadata.Series -}}
+									{{- $val -}}
+									{{- "\n" -}}
+								{{- end -}}
+							</textarea>
+							<code>Format: one name per line</code>
+						</div>
+					</div>
+					<div class="mb-2">
+						<label>URLs</label>
+						<textarea rows="6" class="form-control fs-14px p-1" name="urlsText">
+							{{- range $url := .Metadata.Urls -}}
+								{{- $url -}}
 								{{- "\n" -}}
 							{{- end -}}
 						</textarea>
-						<code>Format: one 'key:value' pair per line</code>
+							<code>Format: one URL per line</code>
 					</div>
 				</div>
 			</div>

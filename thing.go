@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
+	"html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -12,6 +15,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -310,6 +314,67 @@ func (t *Thing) SortedTags() map[string][]SearchTerm {
 	return ret
 }
 
+func (t *Thing) HtmlTable(options ...string) template.HTML {
+	var b bytes.Buffer
+
+	data := struct {
+		Thing   *Thing
+		Series  map[string]string
+		NoMarks bool
+	}{
+		Thing: t,
+	}
+
+	if slices.Contains(options, "nomarks") {
+		data.NoMarks = true
+	}
+
+	err := templateStore.ExecuteTemplate(&b, "e_details_table.gohtml", data)
+	if err != nil {
+		return template.HTML(err.Error())
+	}
+	return template.HTML(b.String())
+}
+
+func (t *Thing) UrlButtons() []template.HTML {
+	var ret []template.HTML
+
+	for _, url := range t.Urls {
+		var img string
+		var title string
+
+		if strings.HasPrefix(url, "https://hentag.com/") {
+			img = `<img class="source-icon" src="/static/source-icons/hentag.png" alt="Hentag" />`
+			title = "Project Hentai"
+		} else if strings.HasPrefix(url, "https://schale.network/") {
+			img = `<img class="source-icon" src="/static/source-icons/schale.png" alt="Schale" />`
+			title = "Schale"
+		} else if strings.HasPrefix(url, "https://www.fakku.net/") {
+			img = `<img class="source-icon" src="/static/source-icons/fakku.png" alt="Fakku" />`
+			title = "Fakku"
+		} else if strings.HasPrefix(url, "https://doujin.io/") {
+			img = `<img class="source-icon" src="/static/source-icons/j18.png" alt="J18" />`
+			title = "J18"
+		} else if strings.HasPrefix(url, "https://irodoricomics.com/") {
+			img = `<img class="source-icon" src="/static/source-icons/irodori.png" alt="Irodori" />`
+			title = "Irodori"
+		} else if strings.HasPrefix(url, "https://www.projecthentai.com/") {
+			img = `<img class="source-icon" src="/static/source-icons/projecthentai.png" alt="Project Hentai" />`
+			title = "Project Hentai"
+		} else if strings.HasPrefix(url, "https://raw.githubusercontent.com/ccdc06/metadata/") {
+			img = `<img class="source-icon" src="/static/source-icons/ccdc06.png" alt="CCDC06" />`
+			title = "CCDC06"
+		} else {
+			img = `<i class="fa-solid fa-link fa-lg"></i>`
+			title = "url"
+		}
+
+		ret = append(ret, template.HTML(fmt.Sprintf(`<a target="_blank" class="badge bg-secondary text-decoration-none p-1" title="%s" href="%s">%s</a>`, html.EscapeString(title), html.EscapeString(url), img)))
+	}
+
+	return ret
+}
+
 func (t *Thing) CollectionDetailsUrl() string {
 	u := new(url.URL)
 	u.Path = "/"
@@ -509,4 +574,20 @@ func (t *Thing) TrySaveStatic() error {
 	}
 
 	return nil
+}
+
+func (t *Thing) SeriesUrls() map[string]string {
+	ret := make(map[string]string)
+
+	for _, name := range t.Series {
+		u := new(url.URL)
+		u.Path = "/"
+		q := u.Query()
+		q.Set("q", BuildBleveSearchTerm("series", name))
+		u.RawQuery = q.Encode()
+
+		ret[u.String()] = name
+	}
+
+	return ret
 }

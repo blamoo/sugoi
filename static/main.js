@@ -25,6 +25,43 @@ function thingSubMark(hash) {
     return $.post('/thing/' + hash + '/subMark.json');
 }
 
+function updateMarksInput() {
+    $('[data-marks-input]').each(function () {
+        var $this = $(this);
+
+        if ($this.attr('data-marks-input-loaded')) {
+            return;
+        }
+
+        var hash = $this.data('marks-input');
+        var $marks = $this.find('[data-marks]');
+        var $sub = $this.find('[data-marks-sub]');
+        var $add = $this.find('[data-marks-add]');
+
+        $this.attr('data-marks-input-loaded', 1);
+
+        $add.click(function (e) {
+            e.preventDefault();
+            $marks.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
+
+            thingAddMark(hash)
+                .done(function (data) {
+                    $marks.html(data.Marks);
+                });
+        });
+
+        $sub.click(function (e) {
+            e.preventDefault();
+            $marks.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
+
+            thingSubMark(hash)
+                .done(function (data) {
+                    $marks.html(data.Marks);
+                });
+        });
+    });
+}
+
 function setThingCover(hash, file) {
     return $.post('/thing/' + hash + '/cover.json', {
         file: file
@@ -123,7 +160,7 @@ $(document).ready(function (e) {
             } else {
                 $reindexStatus.hide().html('');
             }
-            
+
             if (data.Stop) {
                 $reindexStatus.hide().html('');
                 clearInterval(statusInterval);
@@ -134,7 +171,8 @@ $(document).ready(function (e) {
 
     var statusInterval = setInterval(updateReindexStatus, 5000);
     updateReindexStatus();
-})
+    updateMarksInput();
+});
 
 function loadingAlert() {
     return '<div class="alert alert-info">Loading...</div>';
