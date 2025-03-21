@@ -349,6 +349,9 @@ func (t *Thing) UrlButtons() []template.HTML {
 		} else if strings.HasPrefix(url, "https://schale.network/") {
 			img = `<img class="source-icon" src="/static/source-icons/schale.png" alt="Schale" />`
 			title = "Schale"
+		} else if strings.HasPrefix(url, "https://hentainexus.com/") {
+			img = `<img class="source-icon" src="/static/source-icons/hentainexus.png" alt="HentaiNexus" />`
+			title = "Schale"
 		} else if strings.HasPrefix(url, "https://www.fakku.net/") {
 			img = `<img class="source-icon" src="/static/source-icons/fakku.png" alt="Fakku" />`
 			title = "Fakku"
