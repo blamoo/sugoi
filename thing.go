@@ -345,7 +345,7 @@ func (t *Thing) UrlButtons() []template.HTML {
 
 		if strings.HasPrefix(url, "https://hentag.com/") {
 			img = `<img class="source-icon" src="/static/source-icons/hentag.png" alt="Hentag" />`
-			title = "Project Hentai"
+			title = "Hentag"
 		} else if strings.HasPrefix(url, "https://schale.network/") {
 			img = `<img class="source-icon" src="/static/source-icons/schale.png" alt="Schale" />`
 			title = "Schale"
@@ -489,17 +489,16 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 			return nil
 		}
 
+		extension := filepath.Ext(path)
 		// #TODO move this list of extensions to config file
-
-		if strings.HasSuffix(path, ".yaml") {
-			return nil
+		allowed := []string{
+			".png",
+			".jpg",
+			".jpeg",
+			".webp",
 		}
 
-		if strings.HasSuffix(path, ".txt") {
-			return nil
-		}
-
-		if strings.HasSuffix(path, ".db") {
+		if !slices.Contains(allowed, extension) {
 			return nil
 		}
 

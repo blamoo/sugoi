@@ -7,6 +7,8 @@ import (
 	"image"
 	"image/draw"
 	"image/jpeg"
+	_ "image/png"
+
 	"io"
 	"log"
 	"math"
@@ -20,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	_ "golang.org/x/image/webp"
 
 	"github.com/bamiaux/rez"
 	"github.com/blevesearch/bleve/v2"

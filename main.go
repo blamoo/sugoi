@@ -11,9 +11,6 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	"github.com/gorilla/mux"
 
-	_ "image/png"
-
-	_ "golang.org/x/image/webp"
 	"golang.org/x/term"
 )
 
