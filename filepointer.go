@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/sha1"
 	"fmt"
-	"hash/crc32"
 	"io"
 	"math/rand/v2"
 	"os"
@@ -99,13 +98,19 @@ func (fp *FilePointer) DynamicMetaPath() string {
 	return path.Join(fp.MetaPath, "dynamic.json")
 }
 
-func (fp *FilePointer) DirHash() string {
+func (fp *FilePointer) PlaceholderCollection() string {
 	dir := path.Dir(fp.PathKey)
+	return path.Base(dir)
+}
 
-	byteKey := []byte(dir)
-	byteHash := crc32.ChecksumIEEE(byteKey)
+var fixName = regexp.MustCompile(`^(\[.*?\] )?(.*?)( \(.*?\))?$`)
 
-	return fmt.Sprintf("%08X", byteHash)
+func (fp *FilePointer) PlaceholderTitle() string {
+	name := path.Base(fp.PathKey)
+	ext := path.Ext(name)
+	name, _ = strings.CutSuffix(name, ext)
+	name = fixName.ReplaceAllString(name, "$2")
+	return name
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -62,11 +62,11 @@ func NewThingFromHash(hash string) (*Thing, error) {
 
 func (t *Thing) FillEmptyFields(file *FilePointer) {
 	if len(t.Title) == 0 {
-		t.Title = file.PathKey
+		t.Title = file.PlaceholderTitle()
 	}
 
 	if len(t.Collection) == 0 {
-		t.Collection = fmt.Sprintf("No Collection (%s)", file.DirHash())
+		t.Collection = file.PlaceholderCollection()
 	}
 
 	// if len(this.Cover) == 0 {

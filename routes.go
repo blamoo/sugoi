@@ -52,7 +52,6 @@ func Routes(router *mux.Router) {
 	router.HandleFunc("/thing/pushRead/{hash:[a-z0-9]+}", RouteThingPushRead)
 	router.HandleFunc("/system", RouteSystem)
 	router.HandleFunc("/system/reindexStatus", RouteSystemReindexStatus)
-	router.HandleFunc("/pending", RoutePending)
 	router.HandleFunc("/favicon.ico", RouteFavicon)
 }
 
@@ -1122,40 +1121,6 @@ func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
-}
-
-func RoutePending(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
-		return
-	}
-
-	rawquery := bleve.NewQueryStringQuery("collection:\"No Collection *\"")
-	query, err := rawquery.Parse()
-
-	if err != nil {
-		RenderError(w, r, err.Error())
-		return
-	}
-	search := bleve.NewSearchRequest(query)
-	search.Size = len(filePointers.List)
-	search.Fields = []string{"*"}
-	searchResults, err := bleveIndex.Search(search)
-
-	if err != nil {
-		RenderError(w, r, err.Error())
-		return
-	}
-
-	ret := map[string]string{}
-	for _, thing := range searchResults.Hits {
-		value, exists := thing.Fields["title"]
-		if exists {
-			ret[thing.ID] = value.(string)
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ret)
 }
 
 func RouteFavicon(w http.ResponseWriter, r *http.Request) {

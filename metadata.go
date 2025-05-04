@@ -239,11 +239,11 @@ func (fms *FileMetadataStatic) FillEmptyFields(file *FilePointer) {
 	}
 
 	if len(fms.Title) == 0 {
-		fms.Title = file.PathKey
+		fms.Title = file.PlaceholderTitle()
 	}
 
 	if len(fms.Collection) == 0 {
-		fms.Collection = fmt.Sprintf("No Collection (%s)", file.DirHash())
+		fms.Collection = file.PlaceholderCollection()
 	}
 
 	if fms.Pages == 0 {
