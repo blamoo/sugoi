@@ -162,7 +162,7 @@ const queryHistory = {
         }
     },
     push: function (url, label) {
-        if (url === "/?" || url === "/") {
+        if (url === "/?" || url === "/" || label.trim() === "") {
             return;
         }
         

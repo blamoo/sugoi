@@ -74,6 +74,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		Search         string
 		Hits           uint64
 		SearchTags     []SearchTerm
+		QuickFilters   []QuickFilter
 	}{
 		Title:          "Home",
 		HasNext:        false,
@@ -156,16 +157,18 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		hits := len(searchResults.Hits)
-		pick := rand.IntN(hits)
-		hash := searchResults.Hits[pick].ID
-		thing, err := NewThingFromHash(hash)
-		if err != nil {
-			RenderError(w, r, err.Error())
+		if hits != 0 {
+			pick := rand.IntN(hits)
+			hash := searchResults.Hits[pick].ID
+			thing, err := NewThingFromHash(hash)
+			if err != nil {
+				RenderError(w, r, err.Error())
+				return
+			}
+
+			http.Redirect(w, r, thing.ReadUrl(), http.StatusFound)
 			return
 		}
-
-		http.Redirect(w, r, thing.ReadUrl(), http.StatusFound)
-		return
 	}
 
 	search.Size = pageSize + 1
@@ -262,6 +265,8 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		u := url.URL{Path: r.URL.Path, RawQuery: q.Encode()}
 		data.PagePrevUrl = u.String()
 	}
+
+	data.QuickFilters = ParseQuickFilters(data.Search)
 
 	if fDebug == "json" {
 		w.Header().Set("Content-Type", "application/json")
@@ -439,7 +444,20 @@ func RouteHentagJson(w http.ResponseWriter, r *http.Request) {
 	defer res.Body.Close()
 
 	var result HentagV1VaultSearchResponse
-	err = json.NewDecoder(res.Body).Decode(&result)
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(JsonError{err.Error()})
+		return
+	}
+
+	if !json.Valid(b) {
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(JsonError{string(b)})
+		return
+	}
+
+	err = json.NewDecoder(bytes.NewBuffer(b)).Decode(&result)
 	if err != nil {
 		w.WriteHeader(400)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})

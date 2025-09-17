@@ -143,6 +143,10 @@ func InitializeFilePointers() error {
 			continue
 		}
 
+		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") || strings.HasPrefix(line, ";") {
+			continue
+		}
+
 		n, err := NewFilePointer(line)
 
 		if err != nil {

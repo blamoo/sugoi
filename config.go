@@ -29,6 +29,7 @@ type SugoiConfig struct {
 	SessionCookieKey     []byte
 	Users                map[string]string
 	HentagSearchLanguage string
+	QuickFilters         []QuickFilter
 }
 
 func (c SugoiConfig) CacheFile(elem ...string) string {

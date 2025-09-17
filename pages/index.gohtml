@@ -15,6 +15,9 @@
 					<div class="row">
 						<div class="col">
 							<input type="text" class="form-control" name="q" value="{{.Search}}" />
+							{{range .QuickFilters }}
+								{{ .Badge }}
+							{{end}}
 						</div>
 						<div class="col">
 							<select class="form-select" id="orderSelect" name="order">

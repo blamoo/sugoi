@@ -155,8 +155,8 @@
 
 				$searchTarget.html(ret);
 			})
-			.fail(function () {
-				$searchTarget.html('Error');
+			.fail(function (xhr) {
+				$searchTarget.html($('<div class="alert alert-danger">').html(JSON.parse(xhr.responseText).Error));
 			});
 		});
 		$searchForm.trigger('submit');

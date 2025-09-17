@@ -15,5 +15,12 @@
     },
     "Users": {
         "user": "$2a$14$HhkeZP5kcCecR9xJGMa6T.5a5mAdYcSwg4ab2aMe63hgUpZiAFBkK"
-    }
+    },
+    "QuickFilters": [
+        {
+            "Label": "rating:5",
+            "Add": "+rating:5",
+            "Remove": "\\s*[+-]?rating:\\d+"
+        }
+    ]
 }
