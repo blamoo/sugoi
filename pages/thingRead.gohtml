@@ -82,8 +82,7 @@
 								<kbd>5</kbd>
 							</td>
 							<td>
-								Set score to 0~5<br/>
-								(to prevent misclicks, you have to press it twice)
+								Set score to 0~5
 							</td>
 						</tr>
 						<tr>
@@ -97,8 +96,7 @@
 						<tr>
 							<td><kbd>C</kbd></td>
 							<td>
-								Set cover of the gallery to the current page<br />
-								(to prevent misclicks, you have to press it twice)
+								Set cover of the gallery to the current page
 							</td>
 						</tr>
 						<tr>
@@ -345,10 +343,26 @@
 
 					case "r":
 					window.location.href = backUrl;
+					event.preventDefault();
 					break;
 
 					case "t":
-					toaster("This is a toast!");
+					var first = queryHistory.first();
+					if (first === null) {
+						toaster("Search history is empty");
+					} else {
+						window.location.href = first.url;
+					}
+					event.preventDefault();
+					break;
+
+					case "y":
+					var first = queryHistory.first();
+					if (first === null) {
+						toaster("Search history is empty");
+					} else {
+						window.location.href = first.url + '&random=1';
+					}
 					event.preventDefault();
 					break;
 

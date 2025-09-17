@@ -177,8 +177,8 @@
 	<script>
 		$(document).ready(function() {
 			var locationFixed = new URLSearchParams(location.search);
-			localStorage.setItem("index.lastUrl", locationFixed.toString());
-			resetBrandButton();
+			queryHistory.push('/?' + locationFixed.toString(), locationFixed.get('q'));
+			updateQueryHistoryButton();
 
 			var $displayTypes = $('#displayTypes');
 			$displayTypes.on('change', 'input', function(e) {

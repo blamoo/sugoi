@@ -133,24 +133,98 @@ $.fn.appendRatingForm = function (id, initialRating) {
     });
 }
 
-var $brandButton = $('#brandButton');
+const queryHistory = {
+    list: [],
+    initialized: false,
+    initialize: function () {
+        if (this.initialized) {
+            return;
+        }
 
-function resetBrandButton() {
-    $brandButton.attr("href", "/");
+        try {
+            var str = localStorage.getItem("queryHistory.list");
+            this.list = JSON.parse(str);
+        } catch (error) {
+            this.list = [];
+        }
+
+        if (!Array.isArray(this.list)) {
+            this.list = [];
+        }
+
+        this.initialized = true;
+    },
+    first: function () {
+        if (this.list.length === 0) {
+            return null;
+        } else {
+            return this.list[0];
+        }
+    },
+    push: function (url, label) {
+        if (url === "/?" || url === "/") {
+            return;
+        }
+        
+        this.list = this.list.filter(function (val) {
+            return val.label !== label;
+        });
+
+        this.list.unshift({url: url, label: label});
+        this.save();
+    },
+    save: function () {
+        this.list = this.list.slice(0, 6);
+        localStorage.setItem("queryHistory.list", JSON.stringify(this.list));
+    },
+    removeByLabel: function (label) {
+        this.list = this.list.filter(function (val) {
+            return val.label !== label;
+        });
+        this.save();
+    },
 }
 
-function updateBrandButton() {
-    var lastUrl = localStorage.getItem("index.lastUrl");
+var $brandButton = $('#brandButton');
+var $historyButton = $('#historyButton');
+var $historyMenu = $('#historyMenu');
 
-    if (lastUrl !== null) {
-        var qs = new URLSearchParams(lastUrl);
+function updateQueryHistoryButton() {
+    queryHistory.initialize();
+    $historyMenu.empty();
+    $historyMenu.append('<li><a class="dropdown-item" href="/">Home</a></li>');
+    
+    for (const item of queryHistory.list) {
+        var $newItem = $('<a class="dropdown-item">').html(item.label).attr('href', item.url);
+        $historyMenu.append($('<li class="d-flex align-items-center">').attr('data-label', item.label).html([
+            $newItem,
+            '<button type="button" class="btn-close fs-12px mx-2" data-action="remove"></button>'
+        ]));
+    }
 
-        $brandButton.attr("href", "/?" + qs.toString());
+    var first = queryHistory.first();
+    if (first === null) {
+        $brandButton.attr("href", '/');
+    } else {
+        if ('/' + location.search === first.url) {
+            $brandButton.attr("href", '/');
+        } else {
+            $brandButton.attr("href", first.url);
+        }
     }
 }
 
+$historyMenu.on('click', '[data-action="remove"]', function(e) {~
+    e.preventDefault();
+    e.stopPropagation();
+    const $li = $(this).closest('[data-label]');
+
+    queryHistory.removeByLabel($li.data('label'));
+    $li.remove();
+});
+
 $(document).ready(function (e) {
-    updateBrandButton();
+    updateQueryHistoryButton();
 
     var $reindexStatus = $('#reindexStatus');
     var updateReindexStatus = function () {
