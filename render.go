@@ -10,7 +10,7 @@ import (
 
 var templateStore *template.Template
 
-func RenderPage(w http.ResponseWriter, r *http.Request, name string, data interface{}) {
+func RenderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
 	var err error
 	r.ParseForm()
 

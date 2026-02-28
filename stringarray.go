@@ -35,9 +35,9 @@ func (s *StringArray) UnmarshalJSON(data []byte) error {
 }
 
 func (s *StringArray) SetFromTextArea(str string) {
-	lines := strings.Split(str, "\n")
+	lines := strings.SplitSeq(str, "\n")
 
-	for _, line := range lines {
+	for line := range lines {
 		line = strings.TrimSpace(line)
 
 		if len(line) == 0 {

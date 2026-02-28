@@ -48,7 +48,7 @@ func InitializeBleve() error {
 
 func BuildNewMapping() *mapping.IndexMappingImpl {
 	indexMapping := bleve.NewIndexMapping()
-	indexMapping.AddCustomAnalyzer("simpleUnicode", map[string]interface{}{
+	indexMapping.AddCustomAnalyzer("simpleUnicode", map[string]any{
 		"type":      custom.Name,
 		"tokenizer": unicode.Name,
 		"token_filters": []string{

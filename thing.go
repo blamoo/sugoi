@@ -400,29 +400,13 @@ func (t *Thing) EditMetadataUrl() string {
 }
 
 func (t *Thing) FilledStarsRepeat(str string) string {
-	i := t.Rating
-
-	if i > 5 {
-		i = 5
-	}
-
-	if i < 0 {
-		i = 0
-	}
+	i := max(min(t.Rating, 5), 0)
 
 	return strings.Repeat(str, i)
 }
 
 func (t *Thing) EmptyStarsRepeat(str string) string {
-	i := t.Rating
-
-	if i > 5 {
-		i = 5
-	}
-
-	if i < 0 {
-		i = 0
-	}
+	i := max(min(t.Rating, 5), 0)
 
 	return strings.Repeat(str, 5-i)
 }
@@ -458,9 +442,9 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 	if !os.IsNotExist(err) {
 		b, err := io.ReadAll(f)
 		if err == nil {
-			split := strings.Split(string(b), "\n")
+			split := strings.SplitSeq(string(b), "\n")
 
-			for _, line := range split {
+			for line := range split {
 				line = strings.TrimSpace(line)
 				if len(line) == 0 {
 					continue

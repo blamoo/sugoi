@@ -200,7 +200,7 @@ func (fp *FilePointer) BuildReindexDoc() FileMetadata {
 	file.FileMetadataDynamic.FillEmptyFields(fp)
 
 	file.Random = make(map[string]int, RANDOM_POOL_SIZE)
-	for i := 0; i < RANDOM_POOL_SIZE; i++ {
+	for i := range RANDOM_POOL_SIZE {
 		k := strconv.Itoa(i)
 		file.Random[k] = rand.Int()
 	}

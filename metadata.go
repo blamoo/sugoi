@@ -44,8 +44,8 @@ type FileMetadataDynamic struct {
 	Rating      int       `json:"rating"`
 	Marks       int       `json:"marks"`
 	ReadCount   int       `json:"read_count"`
-	FirstReadAt time.Time `json:"first_read_at,omitempty"`
-	LastReadAt  time.Time `json:"last_read_at,omitempty"`
+	FirstReadAt time.Time `json:"first_read_at"`
+	LastReadAt  time.Time `json:"last_read_at"`
 }
 
 var metadataKeywordsFields = []string{
