@@ -36,6 +36,7 @@ func (t QuickFilter) Url() string {
 	u := new(url.URL)
 	u.Path = "/"
 	queryString, _ := url.ParseQuery(t.CurrentQueryString)
+	delete(queryString, "page")
 
 	if q, ok := queryString["q"]; ok {
 		q[0] = strings.TrimSpace(q[0])
