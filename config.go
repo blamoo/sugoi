@@ -30,6 +30,17 @@ type SugoiConfig struct {
 	Users                map[string]string
 	HentagSearchLanguage string
 	QuickFilters         []QuickFilter
+	SlideshowPresets     []SlideshowPreset
+}
+
+func (c SugoiConfig) DefaultSlideshowPreset() SlideshowPreset {
+	for _, v := range c.SlideshowPresets {
+		if v.Default {
+			return v
+		}
+	}
+
+	return c.SlideshowPresets[0]
 }
 
 func (c SugoiConfig) CacheFile(elem ...string) string {
@@ -95,6 +106,14 @@ func InitializeConfig() error {
 
 	if config.SessionCookieMaxAge <= 0 {
 		return fmt.Errorf("SessionMaxAge should be greater than 0")
+	}
+
+	if len(config.SlideshowPresets) == 0 {
+		config.SlideshowPresets = []SlideshowPreset{
+			{Seconds: 5, Default: true},
+			{Seconds: 10},
+			{Seconds: 30},
+		}
 	}
 
 	if len(config.SessionCookieKey) < 32 {

@@ -8,13 +8,13 @@
 <body class="thingRead">
 	{{template "e_header.gohtml" .}}
 	<div class="container">
-		<div class="btn-toolbar justify-content-center">
-			<div class="btn-group mx-1 mb-4">
+		<div class="btn-toolbar justify-content-center my-2">
+			<div class="btn-group mx-1">
 				<a class="btn btn-sm btn-primary" href="{{.Thing.DetailsUrl}}" title="Back to details">
 					<i class="fa-solid fa-arrow-left"></i>
 				</a>
 			</div>
-			<div class="btn-group mx-1 mb-4">
+			<div class="btn-group mx-1">
 				<a id="navFirst" class="btn btn-sm btn-primary" title="First">
 					<i class="fa-solid fa-angle-double-left"></i>
 				</a>
@@ -29,28 +29,37 @@
 					<i class="fa-solid fa-angle-double-right"></i>
 				</a>
 			</div>
-			<div class="btn-group mx-1 mb-4">
+			<div class="btn-group mx-1">
 				<button id="fullscreen" type="button" class="btn btn-sm btn-primary" title="Fullscreen">
 					<i class="fa-solid fa-expand"></i>
 				</button>
-				<button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Slideshow">
+				<button class="btn btn-sm btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#slideshowModal" title="Slideshow" data-stop-slideshow>
 					<i class="fa-regular fa-clock"></i>
 				</button>
-				<ul class="dropdown-menu dropdown-menu-end" id="slideshowButtons">
-					<li><button data-delay="5" class="dropdown-item" type="button">5 seconds</button></li>
-					<li><button data-delay="10" class="dropdown-item" type="button">10 seconds</button></li>
-					<li><button data-delay="30" class="dropdown-item" type="button">30 seconds</button></li>
-				</ul>
+				
 			</div>
-			<div class="btn-group mx-1 mb-4">
-				<button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#helpModal" title="Shortcuts">
-					<i class="fa-regular fa-circle-question"></i>
+		</div>
+
+		<div class="btn-toolbar justify-content-center my-2">
+			<div class="btn-group mx-1">
+				<div class="input-group input-group-sm">
+					<button class="btn btn-secondary" type="button" disabled>Marks</button>
+					<button class="btn btn-primary" type="button" data-marks-sub="{{.Thing.Hash}}"><i class="fa-solid fa-minus fa-2xs"></i></button>
+					<span class="input-group-text border border-secondary bg-secondary text-white" data-marks-counter="{{.Thing.Hash}}">{{.Thing.Marks}}</span>
+					<button class="btn btn-primary" type="button" data-marks-add="{{.Thing.Hash}}"><i class="fa-solid fa-plus fa-2xs"></i></button>
+				</div>
+			</div>
+
+			<div class="btn-group mx-1">
+				<button class="btn btn-sm btn-danger" type="button" id="stopSlideshowButton" style="display: none" data-stop-slideshow>
+					Stop slideshow
 				</button>
 			</div>
 		</div>
 	</div>
+
 	<div class="d-flex justify-content-center position-relative" id="target">
-		<div id="fullscreenToaster" class="px-3 mt-3"></div>
+		<div id="fullscreenToaster" class="px-3 my-2"></div>
 		<div id="fullscreenProgress">
 			<div id="fullscreenProgressBar" class="progress green"></div>
 		</div>
@@ -59,110 +68,43 @@
 
 	{{template "e_footer.gohtml" .}}
 
-	<div class="modal modal-lg fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
-		<div class="modal-dialog">
+	<div class="modal modal-lg fade" id="slideshowModal" tabindex="-1" aria-labelledby="slideshowModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title" id="helpModalLabel">Keyboard shortcuts</h5>
+					<h5 class="modal-title" id="slideshowModalLabel">Slideshow setup</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
-					<table class="table w-100">
-						<tr>
-							<th>Key</th>
-							<th>Action</th>
-						</tr>
-						<tr>
-							<td class="text-nowrap">
-								<kbd>0</kbd>
-								<kbd>1</kbd>
-								<kbd>2</kbd>
-								<kbd>3</kbd>
-								<kbd>4</kbd>
-								<kbd>5</kbd>
-							</td>
-							<td>
-								Set score to 0~5
-							</td>
-						</tr>
-						<tr>
-							<td><kbd>M</kbd></td>
-							<td>Add 1 mark</td>
-						</tr>
-						<tr>
-							<td><kbd>N</kbd></td>
-							<td>Remove 1 mark</td>
-						</tr>
-						<tr>
-							<td><kbd>C</kbd></td>
-							<td>
-								Set cover of the gallery to the current page
-							</td>
-						</tr>
-						<tr>
-							<td><kbd>R</kbd></td>
-							<td>Go back to the details page</td>
-						</tr>
-						<tr>
-							<td><kbd>F</kbd></td>
-							<td>Enable fullscreen mode</td>
-						</tr>
-						<tr>
-							<td><kbd>→</kbd></td>
-							<td>Go to next page</td>
-						</tr>
-						<tr>
-							<td><kbd>←</kbd></td>
-							<td>Go to previous page</td>
-						</tr>
-						<tr>
-							<td><kbd>Home</kbd></td>
-							<td>Go to first page</td>
-						</tr>
-						<tr>
-							<td><kbd>End</kbd></td>
-							<td>Go to last page</td>
-						</tr>
-						<tr>
-							<td><kbd>B</kbd></td>
-							<td>Hide everything and leave</td>
-						</tr>
-						<tr>
-							<td><kbd>S</kbd></td>
-							<td>Start/stop slideshow (10 seconds)</td>
-						</tr>
-						<tr>
-							<td><kbd>Space</kbd></td>
-							<td>Stop slideshow</td>
-						</tr>
-						<tr>
-							<td><kbd>Esc</kbd></td>
-							<td>Exit fullscreen mode and stop slideshow</td>
-						</tr>
-						<tr>
-							<td><kbd>+</kbd></td>
-							<td>Increase slideshow delay by 1 second</td>
-						</tr>
-						<tr>
-							<td><kbd>-</kbd></td>
-							<td>Decrease slideshow delay by 1 second</td>
-						</tr>
-					</table>
+					<h6>Regular slideshow</h6>
+					<div class="d-flex flex-wrap gap-2">
+						{{range .Config.SlideshowPresets }}
+							<button data-start-slideshow="{{.Seconds}}" class="btn btn-sm btn-primary" type="button" data-bs-dismiss="modal">{{.Label}}</button>
+						{{end}}
+					</div>
+					
+					<h6 class="mt-2">Persistent slideshow</h6>
+					<div class="d-flex flex-wrap gap-2">
+						{{range .Config.SlideshowPresets }}
+							<button data-start-slideshow="{{.Seconds}}" data-persistent-slideshow="1" class="btn btn-sm btn-warning" type="button" data-bs-dismiss="modal">{{.Label}}</button>
+						{{end}}
+					</div>
 				</div>
 			</div>
 		</div>
 	</div>
 
 	<script>
-		var hash = {{ .Hash }};
-		var pages = {{ .Files }};
-		var prefix = {{ .Thing.ReadUrl }};
-		var backUrl = {{ .Thing.DetailsUrl }};
-		var title = {{ .Thing.Title }};
-		var page = {{ .Page }};
-		var readThreshold = {{ .ReadThreshold }};
-		var pagesRead = new Set();
-		var thingReadSent = false;
+		let hash = {{ .Hash }};
+		let pages = {{ .Files }};
+		let prefix = {{ .Thing.ReadUrl }};
+		let backUrl = {{ .Thing.DetailsUrl }};
+		let title = {{ .Thing.Title }};
+		let page = {{ .Page }};
+		let defaultSlideshowSeconds = {{ .Config.DefaultSlideshowPreset.Seconds }};
+		let readThreshold = {{ .ReadThreshold }};
+		let pagesRead = new Set();
+		let thingReadSent = false;
 
 		$(document).ready(function () {
 			var $title = $('title');
@@ -177,7 +119,7 @@
 			var $navCurr = $('#navCurr');
 			var $navFirst = $('#navFirst');
 			var $navLast = $('#navLast');
-			var $slideshowButtons = $('#slideshowButtons');
+			var $stopSlideshowButton = $('#stopSlideshowButton');
 			var $navAll = $('#navPrev,#navNext,#navFirst,#navLast');
 			var $fullscreen = $('#fullscreen');
 
@@ -191,12 +133,11 @@
 				page = i | 0;
 
 				var expectedPrefix = prefix + "/" + page;
-
 				if (location.pathname != expectedPrefix) {
 					if (location.pathname === prefix) {
-						history.replaceState({ page: page }, "", expectedPrefix);
+						history.replaceState({ page: page }, "", expectedPrefix + location.search);
 					} else {
-						history.pushState({ page: page }, "", expectedPrefix);
+						history.pushState({ page: page }, "", expectedPrefix + location.search);
 					}
 				}
 
@@ -298,7 +239,7 @@
 					break;
 
 					case "m":
-					thingAddMark(hash)
+					thingChangeMark(hash, 'add')
 					.done(function (data) {
 						toaster(data.Message);
 					})
@@ -308,13 +249,18 @@
 					break;
 
 					case "n":
-					thingSubMark(hash)
+					thingChangeMark(hash, 'sub')
 					.done(function (data) {
 						toaster(data.Message);
 					})
 					.fail(function (data) {
 						toaster(data.responseJSON.Error);
 					});
+					break;
+
+					case "p":
+						toggleSlideshow(defaultSlideshowSeconds * 1000, true);
+						event.preventDefault();
 					break;
 
 					case "c":
@@ -332,7 +278,7 @@
 					break;
 
 					case "s":
-					toggleSlideshow(10 * 1000);
+					toggleSlideshow(defaultSlideshowSeconds * 1000);
 					event.preventDefault();
 					break;
 
@@ -357,12 +303,7 @@
 					break;
 
 					case "y":
-					var first = queryHistory.first();
-					if (first === null) {
-						toaster("Search history is empty");
-					} else {
-						window.location.href = first.url + '&random=1';
-					}
+					GoToRandom();
 					event.preventDefault();
 					break;
 
@@ -433,21 +374,24 @@
 				}
 			});
 
-			$slideshowButtons.on('click', 'button', function (e) {
-				e.preventDefault();
-				var delay = $(e.currentTarget).data('delay') * 1000;
-				startSlideshow(delay);
+			$(document.body).on('click', '[data-start-slideshow]', function(e) {
+				startSlideshow(e.target.dataset.startSlideshow * 1000);
+			});
+
+			$(document.body).on('click', '[data-stop-slideshow]', function(e) {
+				stopSlideshow();
 			});
 
 			var slideshowIsOn = false;
 			var slideshowInterval = null;
-			var slideshowMs = null;
+			var slideshowPersistent = false;
+			var slideshowMs = defaultSlideshowSeconds * 1000;
 
-			function toggleSlideshow(delayInMs) {
+			function toggleSlideshow(delayInMs, persistent) {
 				if (slideshowIsOn) {
 					stopSlideshow();
 				} else {
-					startSlideshow(delayInMs);
+					startSlideshow(delayInMs, persistent);
 				}
 			}
 
@@ -455,47 +399,78 @@
 				if (!slideshowIsOn) {
 					return;
 				}
-
-				if (page + 1 == pages.length) {
+				
+				if (page + 1 == pages.length && !slideshowPersistent) {
 					stopSlideshow();
 					return;
 				}
-
+				
 				if (slideshowInterval) {
 					clearInterval(slideshowInterval);
 					slideshowInterval = null;
 				}
 				$fullscreenProgressBar.stop().css({ width: "0%" }).animate({ width: "100%" }, slideshowMs, "linear");
-
+				
 				slideshowInterval = setTimeout(function () {
-					if (!setPage(page + 1)) {
-						stopSlideshow();
+					if (!slideshowPersistent) {
+						if (!setPage(page + 1)) {
+							stopSlideshow();
+						}
+					} else {
+						if (page + 1 === pages.length) {
+							GoToRandom();
+						} else {
+							setPage(page + 1);
+						}
 					}
+					
 				}, slideshowMs);
+
+				$stopSlideshowButton.show();
+				if (slideshowPersistent) {
+					sessionStorage.setItem('slideshowPersist', slideshowMs);
+				}
 			}
 
-			function startSlideshow(delayInMs) {
-				if (page + 1 == pages.length) {
+			function startSlideshow(delayInMs, persistent) {				
+				if (page + 1 == pages.length && !persistent) {
 					return;
 				}
 
 				slideshowMs = delayInMs;
 				slideshowIsOn = true;
+				slideshowPersistent = !!persistent;
 				resetSlideshow();
 			}
-
+			
 			function stopSlideshow() {
 				if (slideshowInterval) {
 					clearInterval(slideshowInterval);
 					$fullscreenProgressBar.stop().css({ width: "0%" });
 					slideshowInterval = null;
 				}
-				slideshowMs = null;
+				$stopSlideshowButton.hide();
+				slideshowPersistent = false;
+				sessionStorage.removeItem('slideshowPersist');
 				slideshowIsOn = false;
+			}
+
+			let ssp = sessionStorage.getItem('slideshowPersist');
+			if (ssp !== null) {
+				startSlideshow(parseInt(ssp), true);
 			}
 
 			function goFullScreen() {
 				$target[0].requestFullscreen();
+			}
+
+			function GoToRandom() {
+				var first = queryHistory.first();
+				if (first === null) {
+					toaster("Search history is empty");
+				} else {
+					window.location.href = first.url + '&random=1';
+				}
 			}
 
 			$fullscreen.click(function (e) {

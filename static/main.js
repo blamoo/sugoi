@@ -17,49 +17,25 @@ function setThingRating(hash, rate) {
     });
 }
 
-function thingAddMark(hash) {
-    return $.post('/thing/' + hash + '/addMark.json');
-}
+function thingChangeMark(hash, op) {
+    let ret;
+    if (op === 'add') {
+        ret = $.post('/thing/' + hash + '/addMark.json');
+    } else if (op === 'sub') {
+        ret = $.post('/thing/' + hash + '/subMark.json');
+    } else {
+        return;
+    }
 
-function thingSubMark(hash) {
-    return $.post('/thing/' + hash + '/subMark.json');
-}
-
-function updateMarksInput() {
-    $('[data-marks-input]').each(function () {
-        var $this = $(this);
-
-        if ($this.attr('data-marks-input-loaded')) {
-            return;
+    var $counters = $(`[data-marks-counter=${hash}]`);
+    $counters.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
+    
+    ret.then(function(data) {
+        if (data && 'Marks' in data) {
+            $counters.html(data.Marks);
         }
-
-        var hash = $this.data('marks-input');
-        var $marks = $this.find('[data-marks]');
-        var $sub = $this.find('[data-marks-sub]');
-        var $add = $this.find('[data-marks-add]');
-
-        $this.attr('data-marks-input-loaded', 1);
-
-        $add.click(function (e) {
-            e.preventDefault();
-            $marks.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
-
-            thingAddMark(hash)
-                .done(function (data) {
-                    $marks.html(data.Marks);
-                });
-        });
-
-        $sub.click(function (e) {
-            e.preventDefault();
-            $marks.html('<i class="fa-solid fa-spinner fa-spin loader"></i>');
-
-            thingSubMark(hash)
-                .done(function (data) {
-                    $marks.html(data.Marks);
-                });
-        });
     });
+    return ret;
 }
 
 function setThingCover(hash, file) {
@@ -245,7 +221,14 @@ $(document).ready(function (e) {
 
     var statusInterval = setInterval(updateReindexStatus, 5000);
     updateReindexStatus();
-    updateMarksInput();
+    
+    $(document.body).on('click', '[data-marks-add]', function (e) {
+        thingChangeMark(this.dataset.marksAdd, 'add');
+    });
+
+    $(document.body).on('click', '[data-marks-sub]', function (e) {
+        thingChangeMark(this.dataset.marksSub, 'sub');
+    });
 });
 
 function loadingAlert() {

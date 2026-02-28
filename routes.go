@@ -266,7 +266,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		data.PagePrevUrl = u.String()
 	}
 
-	data.QuickFilters = ParseQuickFilters(data.Search)
+	data.QuickFilters = ParseQuickFilters(r.Form)
 
 	if fDebug == "json" {
 		w.Header().Set("Content-Type", "application/json")
@@ -891,6 +891,7 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
+		Config        SugoiConfig
 		Title         string
 		Thing         *Thing
 		Files         []string
@@ -898,10 +899,11 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 		Hash          string
 		ReadThreshold int
 	}{
-		Title: thing.Title,
-		Thing: thing,
-		Page:  vPage,
-		Hash:  vHash,
+		Title:  thing.Title,
+		Thing:  thing,
+		Page:   vPage,
+		Hash:   vHash,
+		Config: config,
 	}
 
 	data.Files, err = thing.ListFiles()

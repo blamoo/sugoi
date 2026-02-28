@@ -155,7 +155,7 @@ func ManageUsers() {
 	}
 
 	if overwrite {
-		config.Save(configPath)
+		err = config.Save(configPath)
 
 		if err != nil {
 			fmt.Println(err)

@@ -577,3 +577,11 @@ func (t *Thing) SeriesUrls() map[string]string {
 
 	return ret
 }
+
+func (t *Thing) UpdatedAtRelative() string {
+	if t.UpdatedAt.IsZero() {
+		return "-"
+	}
+
+	return fmt.Sprintf("%s (%s)", t.UpdatedAt.Format("02/01/2006 03:04"), RelativeTime(t.UpdatedAt))
+}

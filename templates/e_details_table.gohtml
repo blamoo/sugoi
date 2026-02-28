@@ -34,10 +34,10 @@
         <tr>
             <td class="text-right">Marks</td>
             <td>
-                <div class="input-group input-group-sm" data-marks-input="{{.Thing.File.Hash}}">
-                    <button class="btn btn-primary" type="button" data-marks-sub><i class="fa-solid fa-minus"></i></button>
-                    <span class="input-group-text border border-secondary bg-secondary text-white" data-marks>{{.Thing.Marks}}</span>
-                    <button class="btn btn-primary" type="button" data-marks-add><i class="fa-solid fa-plus"></i></button>
+                <div class="input-group input-group-sm">
+                    <button class="btn btn-primary" type="button" data-marks-sub="{{.Thing.File.Hash}}"><i class="fa-solid fa-minus fa-2xs"></i></button>
+                    <span class="input-group-text border border-secondary bg-secondary text-white" data-marks-counter="{{.Thing.File.Hash}}">{{.Thing.Marks}}</span>
+                    <button class="btn btn-primary" type="button" data-marks-add="{{.Thing.File.Hash}}"><i class="fa-solid fa-plus fa-2xs"></i></button>
                 </div>
             </td>
         </tr>
@@ -69,5 +69,9 @@
     <tr>
         <td class="text-right">Pages</td>
         <td>{{.Thing.Pages}}</td>
+    </tr>
+    <tr>
+        <td class="text-right">Updated</td>
+        <td>{{.Thing.UpdatedAtRelative}}</td>
     </tr>
 </table>

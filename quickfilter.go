@@ -11,18 +11,18 @@ import (
 )
 
 type QuickFilter struct {
-	Label         string
-	Add           string
-	Remove        string
-	currentSearch string
+	Label              string
+	Add                string
+	Remove             string
+	CurrentQueryString string
 }
 
-func ParseQuickFilters(currentSearch string) []QuickFilter {
+func ParseQuickFilters(currentQs url.Values) []QuickFilter {
 	ret := []QuickFilter{}
 
 	for _, filter := range config.QuickFilters {
 		tmp := filter
-		tmp.currentSearch = currentSearch
+		tmp.CurrentQueryString = currentQs.Encode()
 
 		tmp.Label = filter.Label
 
@@ -35,23 +35,23 @@ func ParseQuickFilters(currentSearch string) []QuickFilter {
 func (t QuickFilter) Url() string {
 	u := new(url.URL)
 	u.Path = "/"
-	q := u.Query()
+	queryString, _ := url.ParseQuery(t.CurrentQueryString)
 
-	term := strings.TrimSpace(t.currentSearch)
+	if q, ok := queryString["q"]; ok {
+		q[0] = strings.TrimSpace(q[0])
 
-	z, err := regexp.Compile(t.Remove)
-	if err != nil {
-		log.Println(err)
-	} else {
-		term = z.ReplaceAllString(term, "")
+		z, err := regexp.Compile(t.Remove)
+		if err != nil {
+			log.Println(err)
+		} else {
+			q[0] = z.ReplaceAllString(q[0], "")
+		}
+
+		q[0] = q[0] + " " + t.Add
+		q[0] = strings.TrimSpace(q[0])
 	}
 
-	term = term + " " + t.Add
-	term = strings.TrimSpace(term)
-
-	q.Set("q", term)
-
-	u.RawQuery = q.Encode()
+	u.RawQuery = queryString.Encode()
 	return u.String()
 }
 
