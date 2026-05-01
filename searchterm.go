@@ -39,6 +39,9 @@ func (t SearchTerm) Url() string {
 }
 
 func (t SearchTerm) Badge() template.HTML {
+	if t.Count == 0 {
+		return template.HTML(fmt.Sprintf(`<a class="badge bg-tag-%s text-decoration-none" href="%s">%s</a>`, t.Key, html.EscapeString(t.Url()), html.EscapeString(t.Label)))
+	}
 	return template.HTML(fmt.Sprintf(`<a class="badge bg-tag-%s text-decoration-none" href="%s">%s <small>(%d)</small></a>`, t.Key, html.EscapeString(t.Url()), html.EscapeString(t.Label), t.Count))
 }
 

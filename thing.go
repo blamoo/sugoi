@@ -343,10 +343,7 @@ func (t *Thing) UrlButtons() []template.HTML {
 		var img string
 		var title string
 
-		if strings.HasPrefix(url, "https://hentag.com/") {
-			img = `<img class="source-icon" src="/static/source-icons/hentag.png" alt="Hentag" />`
-			title = "Hentag"
-		} else if strings.HasPrefix(url, "https://schale.network/") {
+		if strings.HasPrefix(url, "https://schale.network/") {
 			img = `<img class="source-icon" src="/static/source-icons/schale.png" alt="Schale" />`
 			title = "Schale"
 		} else if strings.HasPrefix(url, "https://hentainexus.com/") {
@@ -584,4 +581,18 @@ func (t *Thing) UpdatedAtRelative() string {
 	}
 
 	return fmt.Sprintf("%s (%s)", t.UpdatedAt.Format("02/01/2006 03:04"), RelativeTime(t.UpdatedAt))
+}
+
+func (t *Thing) SearchTags() []SearchTerm {
+	var ret []SearchTerm
+
+	for _, tags := range t.SortedTags() {
+		for _, tag := range tags {
+			if tag.Type == TYPE_TEXT {
+				ret = append(ret, NewSearchTerm(tag.Key, tag.Label))
+			}
+		}
+	}
+
+	return ret
 }

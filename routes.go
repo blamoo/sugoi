@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -39,8 +38,6 @@ func Routes(router *mux.Router) {
 	router.HandleFunc("/logout", RouteLogout)
 	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}.json", RouteThingDetailsJson)
 	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}", RouteThingDetails)
-	router.HandleFunc("/hentag.json", RouteHentagJson)
-	router.HandleFunc("/thing/searchMetadata/{hash:[a-z0-9]+}", RouteThingSearchMetadata)
 	router.HandleFunc("/thing/editMetadata/{hash:[a-z0-9]+}", RouteThingEditMetadata)
 	router.HandleFunc("/thing/saveMetadata/{hash:[a-z0-9]+}", RouteThingSaveMetadata)
 	router.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", RouteThingRatingJson)
@@ -413,122 +410,6 @@ func RouteThingDetails(w http.ResponseWriter, r *http.Request) {
 	RenderPage(w, r, "thingDetails.gohtml", data)
 }
 
-func RouteHentagJson(w http.ResponseWriter, r *http.Request) {
-	var err error
-	if _, ret := HandleAuth(w, r); ret {
-		return
-	}
-
-	title := r.FormValue("title")
-	language := r.FormValue("language")
-
-	request, err := json.Marshal(HentagV1VaultSearchRequest{
-		Title:    title,
-		Language: language,
-	})
-
-	if err != nil {
-		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(JsonError{err.Error()})
-		return
-	}
-
-	url := "https://hentag.com/api/v1/search/vault/title"
-	res, err := http.Post(url, "application/json", bytes.NewBuffer(request))
-
-	if err != nil {
-		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(JsonError{err.Error()})
-		return
-	}
-	defer res.Body.Close()
-
-	var result HentagV1VaultSearchResponse
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(JsonError{err.Error()})
-		return
-	}
-
-	if !json.Valid(b) {
-		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(JsonError{string(b)})
-		return
-	}
-
-	err = json.NewDecoder(bytes.NewBuffer(b)).Decode(&result)
-	if err != nil {
-		w.WriteHeader(400)
-		json.NewEncoder(w).Encode(JsonError{err.Error()})
-		return
-	}
-
-	type WorkResult struct {
-		Id        string              `json:"id"`
-		Title     string              `json:"title"`
-		Cover     string              `json:"cover"`
-		Tags      map[string][]string `json:"tags"`
-		Raw       string              `json:"raw"`
-		Locations []string            `json:"locations"`
-	}
-
-	var data struct {
-		Works []WorkResult `json:"works"`
-	}
-
-	data.Works = make([]WorkResult, len(result))
-	for k, v := range result {
-		raw, _ := json.Marshal(v)
-
-		data.Works[k] = WorkResult{
-			Locations: v.Locations,
-			Title:     v.Title,
-			Cover:     v.CoverImageURL,
-			Tags:      v.ToTags(),
-			Raw:       string(raw),
-		}
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
-}
-
-func RouteThingSearchMetadata(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
-		return
-	}
-
-	vars := mux.Vars(r)
-	vHash := vars["hash"]
-
-	thing, err := NewThingFromHash(vHash)
-	if err != nil {
-		RenderError(w, r, err.Error())
-		return
-	}
-
-	basename := filepath.Base(thing.File.PathKey)
-	ext := filepath.Ext(thing.File.PathKey)
-	search := strings.TrimSuffix(basename, ext)
-
-	data := struct {
-		Title            string
-		Thing            *Thing
-		Search           string
-		SearchLanguages  map[int]string
-		SelectedLanguage string
-	}{
-		Title:            thing.Title,
-		Thing:            thing,
-		Search:           search,
-		SearchLanguages:  HentagSearchLanguages,
-		SelectedLanguage: config.HentagSearchLanguage,
-	}
-
-	RenderPage(w, r, "thingSearchMetadata.gohtml", data)
-}
-
 func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if _, ret := HandleAuth(w, r); ret {
@@ -549,18 +430,6 @@ func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 	var metadata = thing.FileMetadataStatic
 
 	switch format {
-	case "hentag":
-		jsonStr := r.FormValue("json")
-
-		var work HentagV1Work
-		err = json.Unmarshal([]byte(jsonStr), &work)
-		if err != nil {
-			RenderError(w, r, err.Error())
-			return
-		}
-
-		work.FillMetadata(&metadata)
-
 	case "edit":
 		metadata = thing.FileMetadataStatic
 
@@ -898,6 +767,7 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 		Page          int
 		Hash          string
 		ReadThreshold int
+		SearchTags    []SearchTerm
 	}{
 		Title:  thing.Title,
 		Thing:  thing,
@@ -913,6 +783,7 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.ReadThreshold = min(24, int(math.Ceil(float64(len(data.Files))/3.0)))
+	data.SearchTags = thing.SearchTags()
 
 	RenderPage(w, r, "thingRead.gohtml", data)
 }

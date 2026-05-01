@@ -84,6 +84,7 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	thingMapping.AddFieldMappingsAt("type", textFieldMapping)
 	thingMapping.AddFieldMappingsAt("updated_at", dateTimeFieldMapping)
 	thingMapping.AddFieldMappingsAt("series", keywordMapping)
+	thingMapping.AddFieldMappingsAt("url", keywordMapping)
 
 	thingMapping.AddSubDocumentMapping("files", disabledMapping)
 	thingMapping.AddSubDocumentMapping("urls", disabledMapping)

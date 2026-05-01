@@ -100,6 +100,10 @@ button.rateButton.active {
     background-color: #07f;
 }
 
+.bg-tag-language {
+    background-color: #70f;
+}
+
 .source-icon {
     width: 20px;
     height: 20px;

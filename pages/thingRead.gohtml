@@ -66,6 +66,16 @@
 		<div id="fullscreenPageCounter"></div>
 	</div>
 
+	<div class="container">
+		<div class="card mt-3">
+			<div class="card-body">
+				{{range .SearchTags}}
+					{{ .Badge }}
+				{{end}}
+			</div>
+		</div>
+	</div>
+
 	{{template "e_footer.gohtml" .}}
 
 	<div class="modal modal-lg fade" id="slideshowModal" tabindex="-1" aria-labelledby="slideshowModalLabel" aria-hidden="true">

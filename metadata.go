@@ -69,6 +69,7 @@ type FileMetadata struct {
 	FileMetadataDynamic
 	KeywordsMetadata
 	Random map[string]int `json:"random,omitempty"`
+	Url    StringArray    `json:"url,omitempty"`
 }
 
 func CreateMetadataEmptyFile(file string) error {

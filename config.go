@@ -16,21 +16,20 @@ const RANDOM_POOL_SIZE = 10
 const RANDOM_SAMPLE_SIZE = 1000
 
 type SugoiConfig struct {
-	Debug                bool
-	CacheThumbnails      bool
-	CacheDir             string
-	DatabaseDir          string
-	ServerHost           string
-	ServerPort           int
-	MaxConcurrency       int
-	DirVars              map[string]string
-	SessionCookieName    string
-	SessionCookieMaxAge  int
-	SessionCookieKey     []byte
-	Users                map[string]string
-	HentagSearchLanguage string
-	QuickFilters         []QuickFilter
-	SlideshowPresets     []SlideshowPreset
+	Debug               bool
+	CacheThumbnails     bool
+	CacheDir            string
+	DatabaseDir         string
+	ServerHost          string
+	ServerPort          int
+	MaxConcurrency      int
+	DirVars             map[string]string
+	SessionCookieName   string
+	SessionCookieMaxAge int
+	SessionCookieKey    []byte
+	Users               map[string]string
+	QuickFilters        []QuickFilter
+	SlideshowPresets    []SlideshowPreset
 }
 
 func (c SugoiConfig) DefaultSlideshowPreset() SlideshowPreset {

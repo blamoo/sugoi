@@ -205,6 +205,10 @@ func (fp *FilePointer) BuildReindexDoc() FileMetadata {
 		file.Random[k] = rand.Int()
 	}
 
+	for _, url := range file.Urls {
+		file.Url = append(file.Url, url)
+	}
+
 	file.CollectionKw = file.Collection
 	file.TagsKw = file.Tags
 	file.ArtistKw = file.Artist
