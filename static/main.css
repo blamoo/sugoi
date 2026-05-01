@@ -104,6 +104,14 @@ button.rateButton.active {
     background-color: #70f;
 }
 
+.bg-tag-circle {
+    background-color: #0ff;
+}
+
+.bg-tag-publisher {
+    background-color: #ff0;
+}
+
 .source-icon {
     width: 20px;
     height: 20px;
