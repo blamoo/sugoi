@@ -86,10 +86,12 @@ button.rateButton.active {
 
 .bg-tag-collection {
     background-color: #0a2;
+    color: black;
 }
 
 .bg-tag-magazine {
     background-color: #f90;
+    color: black;
 }
 
 .bg-tag-parody {
@@ -106,10 +108,12 @@ button.rateButton.active {
 
 .bg-tag-circle {
     background-color: #0ff;
+    color: black;
 }
 
 .bg-tag-publisher {
     background-color: #ff0;
+    color: black;
 }
 
 .source-icon {
