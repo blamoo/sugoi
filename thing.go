@@ -264,7 +264,7 @@ func (t *Thing) ReadUrl() string {
 	return fmt.Sprintf("/thing/read/%s", t.Hash())
 }
 
-func (t *Thing) SortedTags() map[string][]SearchTerm {
+func (t *Thing) SortedTags(options ...string) map[string][]SearchTerm {
 	ret := make(map[string][]SearchTerm)
 
 	for _, id := range t.Id {
@@ -308,6 +308,12 @@ func (t *Thing) SortedTags() map[string][]SearchTerm {
 	for _, tag := range t.Tags {
 		if len(tag) != 0 {
 			ret["Tags"] = append(ret["Tags"], NewSearchTerm("tags", tag))
+		}
+	}
+
+	if slices.Contains(options, "all") {
+		if len(t.Collection) != 0 {
+			ret["Collection"] = append(ret["Collection"], NewSearchTerm("collection", t.Collection))
 		}
 	}
 
@@ -586,7 +592,7 @@ func (t *Thing) UpdatedAtRelative() string {
 func (t *Thing) SearchTags() []SearchTerm {
 	var ret []SearchTerm
 
-	for _, tags := range t.SortedTags() {
+	for _, tags := range t.SortedTags("all") {
 		for _, tag := range tags {
 			if tag.Type == TYPE_TEXT {
 				ret = append(ret, NewSearchTerm(tag.Key, tag.Label))
