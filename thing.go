@@ -390,10 +390,6 @@ func (t *Thing) CollectionDetailsUrl() string {
 	return u.String()
 }
 
-func (t *Thing) SearchMetadataUrl() string {
-	return fmt.Sprintf("/thing/searchMetadata/%s", t.Hash())
-}
-
 func (t *Thing) SaveMetadataUrl() string {
 	return fmt.Sprintf("/thing/saveMetadata/%s", t.Hash())
 }
