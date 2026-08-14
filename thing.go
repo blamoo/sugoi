@@ -14,7 +14,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -80,20 +79,6 @@ func (t *Thing) Key() string {
 
 func (t *Thing) Hash() string {
 	return t.File.Hash
-}
-
-func (t *Thing) BuildPathKey() string {
-	p := t.Key()
-
-	var re = regexp.MustCompile(`{{.*?}}`)
-
-	p = re.ReplaceAllStringFunc(p, func(s string) string {
-		s = strings.Replace(s, "{{", "", -1)
-		s = strings.Replace(s, "}}", "", -1)
-		return strings.ToLower(s)
-	})
-
-	return path.Clean(p)
 }
 
 func (t *Thing) TrySaveDynamic() error {
@@ -434,13 +419,11 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 
 	f, err := os.Open(fname)
 
-	if err != nil {
+	if err == nil {
 		defer f.Close()
-	}
 
-	if !os.IsNotExist(err) {
-		b, err := io.ReadAll(f)
-		if err == nil {
+		b, readErr := io.ReadAll(f)
+		if readErr == nil {
 			split := strings.SplitSeq(string(b), "\n")
 
 			for line := range split {
@@ -452,6 +435,10 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 			}
 		}
 		return files, nil
+	}
+
+	if !os.IsNotExist(err) {
+		return nil, err
 	}
 	debugPrintf("File list cache miss: %s\n", fname)
 

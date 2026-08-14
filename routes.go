@@ -163,6 +163,18 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
+			if ok, _ := strconv.ParseBool(r.FormValue("refresh")); ok {
+				readerData, err := NewReaderData(thing, 0)
+				if err != nil {
+					RenderError(w, r, err.Error())
+					return
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(readerData)
+				return
+			}
+
 			http.Redirect(w, r, thing.ReadUrl(), http.StatusFound)
 			return
 		}
@@ -460,6 +472,7 @@ func RouteThingSaveMetadata(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(405)
 		RenderError(w, r, "method not allowed")
+		return
 	}
 
 	vars := mux.Vars(r)
@@ -759,31 +772,21 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := struct {
-		Config        SugoiConfig
-		Title         string
-		Thing         *Thing
-		Files         []string
-		Page          int
-		Hash          string
-		ReadThreshold int
-		SearchTags    []SearchTerm
-	}{
-		Title:  thing.Title,
-		Thing:  thing,
-		Page:   vPage,
-		Hash:   vHash,
-		Config: config,
-	}
-
-	data.Files, err = thing.ListFiles()
+	readerData, err := NewReaderData(thing, vPage)
 	if err != nil {
 		RenderError(w, r, err.Error())
 		return
 	}
 
-	data.ReadThreshold = min(24, int(math.Ceil(float64(len(data.Files))/3.0)))
-	data.SearchTags = thing.SearchTags()
+	data := struct {
+		Config     SugoiConfig
+		Title      string
+		ReaderData ReaderData
+	}{
+		Title:      thing.Title,
+		Config:     config,
+		ReaderData: readerData,
+	}
 
 	RenderPage(w, r, "thingRead.gohtml", data)
 }

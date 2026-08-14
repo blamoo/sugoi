@@ -68,12 +68,12 @@ func NewFilePointer(key string) (*FilePointer, error) {
 	return &ret, nil
 }
 
+var pathKeyDirVarRe = regexp.MustCompile(`{{.*?}}`)
+
 func (fp *FilePointer) BuildPathKey() string {
 	p := fp.Key
 
-	var re = regexp.MustCompile(`{{.*?}}`)
-
-	p = re.ReplaceAllStringFunc(p, func(s string) string {
+	p = pathKeyDirVarRe.ReplaceAllStringFunc(p, func(s string) string {
 		s = strings.Replace(s, "{{", "", -1)
 		s = strings.Replace(s, "}}", "", -1)
 		return strings.ToLower(s)

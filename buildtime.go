@@ -15,6 +15,7 @@ func init() {
 
 	if err != nil {
 		buildStr = "-"
+		return
 	}
 
 	buildTime = fileStat.ModTime()

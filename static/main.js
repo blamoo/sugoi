@@ -1,3 +1,4 @@
+window.sugoi = window.sugoi || {};
 function preloadImage(url) {
     img = new Image();
     img.src = url;
@@ -109,68 +110,16 @@ $.fn.appendRatingForm = function (id, initialRating) {
     });
 }
 
-const queryHistory = {
-    list: [],
-    initialized: false,
-    initialize: function () {
-        if (this.initialized) {
-            return;
-        }
-
-        try {
-            var str = localStorage.getItem("queryHistory.list");
-            this.list = JSON.parse(str);
-        } catch (error) {
-            this.list = [];
-        }
-
-        if (!Array.isArray(this.list)) {
-            this.list = [];
-        }
-
-        this.initialized = true;
-    },
-    first: function () {
-        if (this.list.length === 0) {
-            return null;
-        } else {
-            return this.list[0];
-        }
-    },
-    push: function (url, label) {
-        if (url === "/?" || url === "/" || label.trim() === "") {
-            return;
-        }
-        
-        this.list = this.list.filter(function (val) {
-            return val.label !== label;
-        });
-
-        this.list.unshift({url: url, label: label});
-        this.save();
-    },
-    save: function () {
-        this.list = this.list.slice(0, 6);
-        localStorage.setItem("queryHistory.list", JSON.stringify(this.list));
-    },
-    removeByLabel: function (label) {
-        this.list = this.list.filter(function (val) {
-            return val.label !== label;
-        });
-        this.save();
-    },
-}
-
 var $brandButton = $('#brandButton');
 var $historyButton = $('#historyButton');
 var $historyMenu = $('#historyMenu');
 
 function updateQueryHistoryButton() {
-    queryHistory.initialize();
+    window.sugoi.queryHistory.initialize();
     $historyMenu.empty();
     $historyMenu.append('<li><a class="dropdown-item" href="/">Home</a></li>');
-    
-    for (const item of queryHistory.list) {
+
+    for (const item of window.sugoi.queryHistory.list) {
         var $newItem = $('<a class="dropdown-item">').html(item.label).attr('href', item.url);
         $historyMenu.append($('<li class="d-flex align-items-center">').attr('data-label', item.label).html([
             $newItem,
@@ -178,7 +127,7 @@ function updateQueryHistoryButton() {
         ]));
     }
 
-    var first = queryHistory.first();
+    var first = window.sugoi.queryHistory.first();
     if (first === null) {
         $brandButton.attr("href", '/');
     } else {
@@ -190,12 +139,12 @@ function updateQueryHistoryButton() {
     }
 }
 
-$historyMenu.on('click', '[data-action="remove"]', function(e) {~
+$historyMenu.on('click', '[data-action="remove"]', function(e) {
     e.preventDefault();
     e.stopPropagation();
     const $li = $(this).closest('[data-label]');
 
-    queryHistory.removeByLabel($li.data('label'));
+    window.sugoi.queryHistory.removeByLabel($li.data('label'));
     $li.remove();
 });
 
@@ -234,3 +183,4 @@ $(document).ready(function (e) {
 function loadingAlert() {
     return '<div class="alert alert-info">Loading...</div>';
 }
+
