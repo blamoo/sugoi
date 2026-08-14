@@ -23,6 +23,7 @@ window.sugoi.reader = {
         this.$fullscreenProgress = $('#fullscreenProgress');
         this.$fullscreenProgressBar = $('#fullscreenProgressBar').css({ width: "0%" });
         this.$fullscreenPageCounter = $('#fullscreenPageCounter');
+        this.$loadingSpinner = $('#loadingSpinner');
         this.$targetImg = $('<img>').css({ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }).hide().appendTo(this.$target);
         this.$navPrev = $('#navPrev');
         this.$navNext = $('#navNext');
@@ -406,14 +407,23 @@ window.sugoi.reader = {
 
     GoToRandom: function () {
         var first = window.sugoi.queryHistory.first();
-        if (first === null) {
-            this.toaster("Search history is empty");
-            return;
-        }
+        var url = first ? first.url : '/';
+        var separator = url.indexOf('?') === -1 ? '?' : '&';
 
-        $.get(first.url + '&random=1&refresh=1')
+        this.$targetImg.css('visibility', 'hidden');
+        this.$searchTagsContainer.hide();
+        this.$fullscreenPageCounter.addClass('d-none');
+        this.$loadingSpinner.removeClass('d-none');
+
+        $.get(url + separator + 'random=1&refresh=1')
             .done((data) => this.load(data))
-            .fail(() => this.toaster("Failed to load a random thing"));
+            .fail(() => this.toaster("Failed to load a random thing"))
+            .always(() => {
+                this.$targetImg.css('visibility', '');
+                this.$searchTagsContainer.show();
+                this.$fullscreenPageCounter.removeClass('d-none');
+                this.$loadingSpinner.addClass('d-none');
+            });
     },
 
     toaster: function (msg, timeout) {

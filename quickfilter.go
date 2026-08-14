@@ -38,18 +38,25 @@ func (t QuickFilter) Url() string {
 	queryString, _ := url.ParseQuery(t.CurrentQueryString)
 	delete(queryString, "page")
 
-	if q, ok := queryString["q"]; ok {
-		q[0] = strings.TrimSpace(q[0])
+	q := ""
+	if vals, ok := queryString["q"]; ok && len(vals) > 0 {
+		q = vals[0]
+	}
+	q = strings.TrimSpace(q)
 
-		z, err := regexp.Compile(t.Remove)
-		if err != nil {
-			log.Println(err)
-		} else {
-			q[0] = z.ReplaceAllString(q[0], "")
-		}
+	z, err := regexp.Compile(t.Remove)
+	if err != nil {
+		log.Println(err)
+	} else {
+		q = z.ReplaceAllString(q, "")
+	}
 
-		q[0] = q[0] + " " + t.Add
-		q[0] = strings.TrimSpace(q[0])
+	q = strings.TrimSpace(q + " " + t.Add)
+
+	if q != "" {
+		queryString.Set("q", q)
+	} else {
+		queryString.Del("q")
 	}
 
 	u.RawQuery = queryString.Encode()
