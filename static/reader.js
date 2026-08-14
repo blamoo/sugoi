@@ -1,5 +1,7 @@
 window.sugoi = window.sugoi || {};
 
+var BLANK_IMAGE = 'data:image/gif;base64,R0lGODlhAQABAIEAAAAAAAAAAAAAAAAAACH5BAEAAAAALAAAAAABAAEAAAgEAAEEBAA7';
+
 window.sugoi.reader = {
     params: null,
     pagesRead: new Set(),
@@ -410,7 +412,8 @@ window.sugoi.reader = {
         var url = first ? first.url : '/';
         var separator = url.indexOf('?') === -1 ? '?' : '&';
 
-        this.$targetImg.css('visibility', 'hidden');
+        this.$target.css('min-height', this.$target.outerHeight());
+        this.$targetImg.attr('src', BLANK_IMAGE);
         this.$searchTagsContainer.hide();
         this.$fullscreenPageCounter.addClass('d-none');
         this.$loadingSpinner.removeClass('d-none');
@@ -419,7 +422,7 @@ window.sugoi.reader = {
             .done((data) => this.load(data))
             .fail(() => this.toaster("Failed to load a random thing"))
             .always(() => {
-                this.$targetImg.css('visibility', '');
+                this.$target.css('min-height', '');
                 this.$searchTagsContainer.show();
                 this.$fullscreenPageCounter.removeClass('d-none');
                 this.$loadingSpinner.addClass('d-none');
