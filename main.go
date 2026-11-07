@@ -80,7 +80,7 @@ func main() {
 	if config.ServerPort == 80 {
 		httproot = fmt.Sprintf("http://%s/", config.ServerHost)
 	} else {
-		httproot = fmt.Sprintf("http://%s:%d/\n", config.ServerHost, config.ServerPort)
+		httproot = fmt.Sprintf("http://%s:%d/", config.ServerHost, config.ServerPort)
 	}
 
 	fmt.Printf("Listening on %s\n", httproot)

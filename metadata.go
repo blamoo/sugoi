@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"log"
 	"net/url"
@@ -121,12 +120,7 @@ func NewFileMetadataStaticFromFile(file string) (*FileMetadataStatic, error) {
 		return nil, fmt.Errorf("'%s' is not a file", file)
 	}
 
-	reader, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := io.ReadAll(reader)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -141,9 +135,9 @@ func NewFileMetadataStaticFromFile(file string) (*FileMetadataStatic, error) {
 	return &ret, nil
 }
 
-func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) {
-	var ret FileMetadataStatic
-
+// ApplyForm overwrites the fields present in the edit form and keeps every
+// other field (id, circle, pages, files, ...) as it is.
+func (ret *FileMetadataStatic) ApplyForm(form url.Values) error {
 	for key := range form {
 		switch key {
 		case "language":
@@ -155,7 +149,7 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 		case "magazineText":
 			ret.Magazine.SetFromTextArea(form.Get(key))
 
-		case "publisher":
+		case "publisherText":
 			ret.Publisher.SetFromTextArea(form.Get(key))
 
 		case "collection":
@@ -173,7 +167,7 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 		case "created_at":
 			err := ret.CreatedAt.UnmarshalText([]byte(form.Get(key)))
 			if err != nil {
-				return ret, err
+				return err
 			}
 
 		case "tagsText":
@@ -187,7 +181,7 @@ func NewFileMetadataStaticFromForm(form url.Values) (FileMetadataStatic, error) 
 		}
 	}
 
-	return ret, nil
+	return nil
 }
 
 func NewFileMetadataDynamicFromFile(file string) (*FileMetadataDynamic, error) {
@@ -215,12 +209,7 @@ func NewFileMetadataDynamicFromFile(file string) (*FileMetadataDynamic, error) {
 		return nil, fmt.Errorf("'%s' is not a file", file)
 	}
 
-	reader, err := os.Open(file)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := io.ReadAll(reader)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}

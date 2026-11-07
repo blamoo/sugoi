@@ -85,6 +85,7 @@ func InitializeConfig() error {
 	if err != nil {
 		return err
 	}
+	defer configFile.Close()
 
 	configBytes, err := io.ReadAll(configFile)
 	if err != nil {

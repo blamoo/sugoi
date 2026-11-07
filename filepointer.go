@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/blevesearch/bleve/v2"
 )
@@ -48,6 +49,7 @@ func (fpl *FilePointerList) Push(n *FilePointer) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type FilePointer struct {
+	mu       sync.Mutex // guards read-modify-write of this item's metadata files
 	Key      string
 	Hash     string
 	PathKey  string
@@ -121,6 +123,7 @@ func InitializeFilePointers() error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	r := bufio.NewReader(file)
 

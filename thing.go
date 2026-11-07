@@ -81,15 +81,66 @@ func (t *Thing) Hash() string {
 	return t.File.Hash
 }
 
-func (t *Thing) TrySaveDynamic() error {
-	var err error
-	metaFilePath := t.File.DynamicMetaPath()
-	_, err = os.Stat(metaFilePath)
-	if os.IsNotExist(err) {
-		os.MkdirAll(path.Dir(metaFilePath), 0755)
+// updateDynamic reloads dynamic.json from disk under the item's lock, applies
+// fn and saves, so concurrent requests (two tabs, rating + mark) don't
+// overwrite each other's changes.
+func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
+	t.File.mu.Lock()
+	defer t.File.mu.Unlock()
+
+	current, err := NewFileMetadataDynamicFromFile(t.File.DynamicMetaPath())
+	if err != nil {
+		return err
+	}
+	current.FillEmptyFields(t.File)
+
+	err = fn(current)
+	if err != nil {
+		return err
 	}
 
-	f, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	err = writeJsonFile(t.File.DynamicMetaPath(), current)
+	if err != nil {
+		return err
+	}
+
+	t.FileMetadataDynamic = *current
+	return t.File.Reindex()
+}
+
+// SaveStaticFromForm applies the edit form onto the static.json stored on disk
+// (not the in-memory copy, which has placeholder title/pages filled in).
+func (t *Thing) SaveStaticFromForm(form url.Values) error {
+	t.File.mu.Lock()
+	defer t.File.mu.Unlock()
+
+	current, err := NewFileMetadataStaticFromFile(t.File.StaticMetaPath())
+	if err != nil {
+		return err
+	}
+
+	err = current.ApplyForm(form)
+	if err != nil {
+		return err
+	}
+
+	err = writeJsonFile(t.File.StaticMetaPath(), current)
+	if err != nil {
+		return err
+	}
+
+	t.FileMetadataStatic = *current
+	t.FileMetadataStatic.FillEmptyFields(t.File)
+	return t.File.Reindex()
+}
+
+func writeJsonFile(file string, v any) error {
+	err := os.MkdirAll(path.Dir(file), 0755)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -97,76 +148,47 @@ func (t *Thing) TrySaveDynamic() error {
 
 	e := json.NewEncoder(f)
 	e.SetIndent("", "\t")
-
-	err = e.Encode(t.FileMetadataDynamic)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return e.Encode(v)
 }
 
-func (t *Thing) TrySaveRating(rating int) error {
-	old := t.FileMetadataDynamic
-	t.Rating = rating
-	t.UpdatedAt = time.Now()
-
-	err := t.TrySaveDynamic()
-	if err != nil {
-		t.FileMetadataDynamic = old
-		return err
-	}
-	t.File.Reindex()
-
-	return nil
+// TrySaveRating sets the rating; with toggle, setting the current rating again
+// clears it.
+func (t *Thing) TrySaveRating(rating int, toggle bool) error {
+	return t.updateDynamic(func(d *FileMetadataDynamic) error {
+		if toggle && d.Rating == rating {
+			rating = 0
+		}
+		d.Rating = rating
+		d.UpdatedAt = time.Now()
+		return nil
+	})
 }
 
 func (t *Thing) AddMark() error {
-	old := t.FileMetadataDynamic
-	t.Marks++
-
-	err := t.TrySaveDynamic()
-	if err != nil {
-		t.FileMetadataDynamic = old
-		return err
-	}
-	t.File.Reindex()
-
-	return nil
+	return t.updateDynamic(func(d *FileMetadataDynamic) error {
+		d.Marks++
+		return nil
+	})
 }
 
 func (t *Thing) PushRead() error {
-	old := t.FileMetadataDynamic
-	t.ReadCount++
+	return t.updateDynamic(func(d *FileMetadataDynamic) error {
+		d.ReadCount++
 
-	now := time.Now()
-	if t.FileMetadataDynamic.FirstReadAt.IsZero() {
-		t.FileMetadataDynamic.FirstReadAt = now
-	}
-	t.FileMetadataDynamic.LastReadAt = now
-
-	err := t.TrySaveDynamic()
-	if err != nil {
-		t.FileMetadataDynamic = old
-		return err
-	}
-	t.File.Reindex()
-
-	return nil
+		now := time.Now()
+		if d.FirstReadAt.IsZero() {
+			d.FirstReadAt = now
+		}
+		d.LastReadAt = now
+		return nil
+	})
 }
 
 func (t *Thing) SubMark() error {
-	old := t.FileMetadataDynamic
-	t.Marks--
-
-	err := t.TrySaveDynamic()
-	if err != nil {
-		t.FileMetadataDynamic = old
-		return err
-	}
-	t.File.Reindex()
-
-	return nil
+	return t.updateDynamic(func(d *FileMetadataDynamic) error {
+		d.Marks--
+		return nil
+	})
 }
 
 func (t *Thing) TrySaveCover(file string, isUpdate bool) error {
@@ -179,26 +201,17 @@ func (t *Thing) TrySaveCover(file string, isUpdate bool) error {
 		return err
 	}
 
-	for _, cfile := range files {
-		if cfile == file {
-			old := t.FileMetadataDynamic
-			t.Cover = newCover
-			if isUpdate {
-				t.UpdatedAt = time.Now()
-			}
-
-			err := t.TrySaveDynamic()
-			if err != nil {
-				t.FileMetadataDynamic = old
-				return err
-			}
-			t.File.Reindex()
-
-			return nil
-		}
+	if !slices.Contains(files, file) {
+		return fmt.Errorf("file %s doesn't exists in %s", newCover, realLocation)
 	}
 
-	return fmt.Errorf("file %s doesn't exists in %s", newCover, realLocation)
+	return t.updateDynamic(func(d *FileMetadataDynamic) error {
+		d.Cover = newCover
+		if isUpdate {
+			d.UpdatedAt = time.Now()
+		}
+		return nil
+	})
 }
 
 func (t *Thing) CoverImageUrl() string {
@@ -521,31 +534,6 @@ func (t *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
 	}
 
 	return nil, closers, fmt.Errorf("invalid file: %s", file)
-}
-
-func (t *Thing) TrySaveStatic() error {
-	var err error
-	metaFilePath := t.File.StaticMetaPath()
-	_, err = os.Stat(metaFilePath)
-	if os.IsNotExist(err) {
-		os.MkdirAll(path.Dir(metaFilePath), 0755)
-	}
-
-	f, err := os.OpenFile(metaFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	e := json.NewEncoder(f)
-	e.SetIndent("", "\t")
-
-	err = e.Encode(t.FileMetadataStatic)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (t *Thing) SeriesUrls() map[string]string {

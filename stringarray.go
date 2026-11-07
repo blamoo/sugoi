@@ -34,7 +34,9 @@ func (s *StringArray) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("data should be string or string array")
 }
 
+// SetFromTextArea replaces the contents with one entry per non-empty line.
 func (s *StringArray) SetFromTextArea(str string) {
+	*s = nil
 	lines := strings.SplitSeq(str, "\n")
 
 	for line := range lines {

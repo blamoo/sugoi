@@ -307,14 +307,17 @@ func RouteAllFilesJson(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteLogin(w http.ResponseWriter, r *http.Request) {
+	fUser := r.FormValue("user")
+
 	data := struct {
 		Title string
 		Error string
+		User  string
 	}{
 		Title: "Login",
+		User:  fUser,
 	}
 
-	fUser := r.FormValue("user")
 	fPassword := r.FormValue("password")
 
 	if r.Method == http.MethodPost {
@@ -489,23 +492,8 @@ func RouteThingSaveMetadata(w http.ResponseWriter, r *http.Request) {
 	thing.CoverImageUrl()
 	r.ParseForm()
 
-	thing.FileMetadataStatic, err = NewFileMetadataStaticFromForm(r.PostForm)
+	err = thing.SaveStaticFromForm(r.PostForm)
 	if err != nil {
-		w.WriteHeader(400)
-		RenderError(w, r, err.Error())
-		return
-	}
-
-	err = thing.TrySaveStatic()
-	if err != nil {
-		w.WriteHeader(400)
-		RenderError(w, r, err.Error())
-		return
-	}
-
-	err = thing.File.Reindex()
-	if err != nil {
-		w.WriteHeader(400)
 		RenderError(w, r, err.Error())
 		return
 	}
@@ -515,7 +503,7 @@ func RouteThingSaveMetadata(w http.ResponseWriter, r *http.Request) {
 func RouteThingRatingJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAuth(w, r)
+	_, ret := CheckAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -554,11 +542,7 @@ func RouteThingRatingJson(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if fToggle && thing.Rating == fRate {
-			err = thing.TrySaveRating(0)
-		} else {
-			err = thing.TrySaveRating(fRate)
-		}
+		err = thing.TrySaveRating(fRate, fToggle)
 
 		if err != nil {
 			w.WriteHeader(400)
@@ -591,7 +575,7 @@ func RouteThingRatingJson(w http.ResponseWriter, r *http.Request) {
 func RouteThingCoverJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAuth(w, r)
+	_, ret := CheckAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -657,7 +641,7 @@ func RouteThingCoverJson(w http.ResponseWriter, r *http.Request) {
 func RouteThingAddMark(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAuth(w, r)
+	_, ret := CheckAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -709,7 +693,7 @@ func RouteThingAddMark(w http.ResponseWriter, r *http.Request) {
 func RouteThingSubMark(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAuth(w, r)
+	_, ret := CheckAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -796,7 +780,7 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 func RouteThingPushRead(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAuth(w, r)
+	_, ret := CheckAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -996,7 +980,7 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 }
 
 func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
-	_, notLoggedIn := CheckAuth(w, r)
+	_, notLoggedIn := CheckAnyAuth(w, r)
 
 	data := struct {
 		Stop    bool   `json:"Stop,omitempty"`

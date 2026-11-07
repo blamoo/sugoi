@@ -1,11 +1,13 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
@@ -71,21 +73,46 @@ func CheckAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
 		return "", true
 	}
 
-	if !CheckPasswordHash(fPassword, foundPass) {
+	if !checkPasswordHashCached(fPassword, foundPass) {
 		return "", true
 	}
 
 	return foundUser, false
 }
 
-func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
-	userBasic, failedBasic := CheckAuthBasic(w, r)
+// basicAuthOk remembers credentials that already passed bcrypt. HTTP Basic
+// sends the password on every request (every thumbnail), and a cost-14 bcrypt
+// takes about a second. Keys are sha256(hash + password), so plaintext
+// passwords are not kept in memory, and a changed hash in the config never
+// matches an old entry.
+var basicAuthOk sync.Map
 
-	if !failedBasic {
-		return userBasic, failedBasic
+func checkPasswordHashCached(password, hash string) bool {
+	sum := sha256.Sum256([]byte(hash + "\x00" + password))
+	if _, ok := basicAuthOk.Load(sum); ok {
+		return true
 	}
 
-	userSession, failedSession := CheckAuth(w, r)
+	if !CheckPasswordHash(password, hash) {
+		return false
+	}
+
+	basicAuthOk.Store(sum, struct{}{})
+	return true
+}
+
+// CheckAnyAuth accepts HTTP Basic or a session cookie, without redirecting.
+// Used by JSON endpoints, which answer 403 instead of sending to /login.
+func CheckAnyAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+	if user, failed := CheckAuthBasic(w, r); !failed {
+		return user, false
+	}
+
+	return CheckAuth(w, r)
+}
+
+func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+	userSession, failedSession := CheckAnyAuth(w, r)
 
 	if failedSession {
 		returnPath := fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)

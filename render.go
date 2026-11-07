@@ -2,73 +2,81 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"html/template"
 	"net/http"
-	"net/url"
+	"sync"
 	"time"
 )
 
 var templateStore *template.Template
+var templateMu sync.Mutex
 
-func RenderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
-	var err error
-	r.ParseForm()
+// templateFuncs must not depend on the request: in non-debug mode templates
+// are parsed once and shared by every request.
+var templateFuncs = template.FuncMap{
+	"asset": func(attrn string, filePath string) template.HTMLAttr {
+		return template.HTMLAttr(fmt.Sprintf(`%s="%s"`, attrn, html.EscapeString(filePath)))
+	},
+	"noescape": func(str string) template.HTML {
+		return template.HTML(str)
+	},
+	"getBuildTime": func() template.HTML {
+		return template.HTML(buildStr)
+	},
+	"getBuildDiff": func() template.HTML {
+		return template.HTML(BuildDiff())
+	},
+	"formatTime": func(t time.Time) template.HTML {
+		b, _ := t.MarshalText()
+		return template.HTML(b)
+	},
+}
 
-	var baseUrl url.URL
-	baseUrl.Host = r.Host
+func parseTemplates() (*template.Template, error) {
+	tmpl, err := template.New("").Funcs(templateFuncs).ParseGlob("templates/*.gohtml")
+	if err != nil {
+		return nil, err
+	}
 
-	if templateStore == nil || config.Debug {
-		tmpl := template.New("")
+	tmpl, err = tmpl.ParseGlob("pages/*.gohtml")
+	if err != nil {
+		return nil, err
+	}
 
-		tmpl = tmpl.Funcs(template.FuncMap{"asset": func(attrn string, filePath string) template.HTMLAttr {
-			fileUrl := baseUrl
-			fileUrl.Path = filePath
+	debugPrintf("%s\n", tmpl.DefinedTemplates())
+	return tmpl, nil
+}
 
-			return template.HTMLAttr(fmt.Sprintf(`%s="%s"`, attrn, fileUrl.String()))
-		}})
+// getTemplates re-parses on every call in debug mode (edit templates without
+// restarting) and parses once otherwise.
+func getTemplates() (*template.Template, error) {
+	if config.Debug {
+		return parseTemplates()
+	}
 
-		tmpl = tmpl.Funcs(template.FuncMap{"noescape": func(str string) template.HTML {
-			return template.HTML(str)
-		}})
+	templateMu.Lock()
+	defer templateMu.Unlock()
 
-		tmpl = tmpl.Funcs(template.FuncMap{"trd": func(str string) template.HTML {
-			s := r.FormValue(str)
-			return template.HTML(s)
-		}})
-
-		tmpl = tmpl.Funcs(template.FuncMap{"getBuildTime": func() template.HTML {
-			return template.HTML(buildStr)
-		}})
-
-		tmpl = tmpl.Funcs(template.FuncMap{"getBuildDiff": func() template.HTML {
-			return template.HTML(BuildDiff())
-		}})
-
-		tmpl = tmpl.Funcs(template.FuncMap{"formatTime": func(t time.Time) template.HTML {
-			b, _ := t.MarshalText()
-			return template.HTML(b)
-		}})
-
-		tmpl, err = tmpl.ParseGlob("templates/*.gohtml")
+	if templateStore == nil {
+		tmpl, err := parseTemplates()
 		if err != nil {
-			fmt.Fprint(w, err)
-			return
+			return nil, err
 		}
-
-		tmpl, err = tmpl.ParseGlob("pages/*.gohtml")
-		if err != nil {
-			fmt.Fprint(w, err)
-			return
-		}
-
-		// _, err := tmpl.Parse(`{{define "content"}}{{end}}`)
-
-		fmt.Println(tmpl.DefinedTemplates())
-
 		templateStore = tmpl
 	}
 
-	err = templateStore.ExecuteTemplate(w, name, data)
+	return templateStore, nil
+}
+
+func RenderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
+	tmpl, err := getTemplates()
+	if err != nil {
+		fmt.Fprint(w, err)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, name, data)
 	if err != nil {
 		fmt.Fprint(w, err)
 		return
@@ -85,6 +93,10 @@ func RenderError(w http.ResponseWriter, r *http.Request, message string) {
 	data.Title = "Error"
 	debugPrintf("%s\n", message)
 	w.Header().Set("Content-Type", "text/html")
+	// Some callers set long-lived cache headers before failing; never let an
+	// error page be cached in place of the real resource.
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Del("Expires")
 	w.WriteHeader(400)
 	RenderPage(w, r, "error.gohtml", data)
 }

@@ -12,9 +12,6 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 		return false
 	}
 
-	w.Header().Set("Content-Type", "image/jpeg")
-	SetCacheHeader(w, r, 31536000)
-
 	fname := config.CacheFile("thing/file", hash, file)
 	os.MkdirAll(path.Dir(fname), 0755)
 
@@ -30,6 +27,9 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 		return false
 	}
 	defer f.Close()
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	SetCacheHeader(w, r, 31536000)
 
 	_, err = io.Copy(w, f)
 	if err != nil {
