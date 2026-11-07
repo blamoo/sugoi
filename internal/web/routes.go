@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"bytes"
@@ -36,34 +36,35 @@ import (
 
 	"github.com/blamoo/sugoi/internal/catalog"
 
+	"github.com/blamoo/sugoi/internal/config"
 	"github.com/blamoo/sugoi/internal/metadata"
 )
 
-func Routes(router *mux.Router) {
-	router.HandleFunc("/files.json", RouteFilesJson)
-	router.HandleFunc("/allFiles.json", RouteAllFilesJson)
-	router.HandleFunc("/", RouteRoot)
-	router.HandleFunc("/login", RouteLogin)
-	router.HandleFunc("/logout", RouteLogout)
-	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}.json", RouteThingDetailsJson)
-	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}", RouteThingDetails)
-	router.HandleFunc("/thing/editMetadata/{hash:[a-z0-9]+}", RouteThingEditMetadata)
-	router.HandleFunc("/thing/saveMetadata/{hash:[a-z0-9]+}", RouteThingSaveMetadata)
-	router.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", RouteThingRatingJson)
-	router.HandleFunc("/thing/{hash:[a-z0-9]+}/cover.json", RouteThingCoverJson)
-	router.HandleFunc("/thing/{hash:[a-z0-9]+}/addMark.json", RouteThingAddMark)
-	router.HandleFunc("/thing/{hash:[a-z0-9]+}/subMark.json", RouteThingSubMark)
-	router.HandleFunc("/thing/read/{hash:[a-z0-9]+}{page:/?[0-9]*}", RouteThingRead)
-	router.HandleFunc("/thing/file/{hash:[a-z0-9]+}/{file:.+}", RouteThingFile)
-	router.HandleFunc("/thing/pushRead/{hash:[a-z0-9]+}", RouteThingPushRead)
-	router.HandleFunc("/system", RouteSystem)
-	router.HandleFunc("/system/reindexStatus", RouteSystemReindexStatus)
-	router.HandleFunc("/favicon.ico", RouteFavicon)
-	router.HandleFunc("/autocomplete.json", RouteAutocomplete)
+func (srv *Server) routes(router *mux.Router) {
+	router.HandleFunc("/files.json", srv.routeFilesJson)
+	router.HandleFunc("/allFiles.json", srv.routeAllFilesJson)
+	router.HandleFunc("/", srv.routeRoot)
+	router.HandleFunc("/login", srv.routeLogin)
+	router.HandleFunc("/logout", srv.routeLogout)
+	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}.json", srv.routeThingDetailsJson)
+	router.HandleFunc("/thing/details/{hash:[a-z0-9]+}", srv.routeThingDetails)
+	router.HandleFunc("/thing/editMetadata/{hash:[a-z0-9]+}", srv.routeThingEditMetadata)
+	router.HandleFunc("/thing/saveMetadata/{hash:[a-z0-9]+}", srv.routeThingSaveMetadata)
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/rating.json", srv.routeThingRatingJson)
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/cover.json", srv.routeThingCoverJson)
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/addMark.json", srv.routeThingAddMark)
+	router.HandleFunc("/thing/{hash:[a-z0-9]+}/subMark.json", srv.routeThingSubMark)
+	router.HandleFunc("/thing/read/{hash:[a-z0-9]+}{page:/?[0-9]*}", srv.routeThingRead)
+	router.HandleFunc("/thing/file/{hash:[a-z0-9]+}/{file:.+}", srv.routeThingFile)
+	router.HandleFunc("/thing/pushRead/{hash:[a-z0-9]+}", srv.routeThingPushRead)
+	router.HandleFunc("/system", srv.routeSystem)
+	router.HandleFunc("/system/reindexStatus", srv.routeSystemReindexStatus)
+	router.HandleFunc("/favicon.ico", srv.routeFavicon)
+	router.HandleFunc("/autocomplete.json", srv.routeAutocomplete)
 }
 
-func RouteRoot(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeRoot(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
@@ -131,7 +132,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		parsed, err := rawquery.Parse()
 
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 
@@ -158,27 +159,27 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 	if ok, _ := strconv.ParseBool(r.FormValue("random")); ok {
 		sort := "random." + strconv.Itoa(rand.IntN(search.RandomPoolSize))
 		searchReq.SortBy([]string{sort})
-		searchReq.Size = RANDOM_SAMPLE_SIZE
+		searchReq.Size = randomSampleSize
 
-		searchResults, err := cat.Index.Search(searchReq)
+		searchResults, err := srv.cat.Index.Search(searchReq)
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 		hits := len(searchResults.Hits)
 		if hits != 0 {
 			pick := rand.IntN(hits)
 			hash := searchResults.Hits[pick].ID
-			thing, err := NewThingFromHash(hash)
+			thing, err := srv.thing(hash)
 			if err != nil {
-				RenderError(w, r, err.Error())
+				srv.renderError(w, r, err.Error())
 				return
 			}
 
 			if ok, _ := strconv.ParseBool(r.FormValue("refresh")); ok {
 				readerData, err := NewReaderData(thing, 0)
 				if err != nil {
-					RenderError(w, r, err.Error())
+					srv.renderError(w, r, err.Error())
 					return
 				}
 
@@ -214,9 +215,9 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		searchReq.AddFacet(field, bleve.NewFacetRequest(field+"_kw", 50))
 	}
 
-	searchResults, err := cat.Index.Search(searchReq)
+	searchResults, err := srv.cat.Index.Search(searchReq)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 	data.Hits = searchResults.Total
@@ -262,9 +263,9 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, v := range searchResults.Hits {
-		thing, err := NewThingFromHash(v.ID)
+		thing, err := srv.thing(v.ID)
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 		data.Things = append(data.Things, thing)
@@ -287,7 +288,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		data.PagePrevUrl = u.String()
 	}
 
-	data.QuickFilters = ParseQuickFilters(r.Form)
+	data.QuickFilters = srv.quickFilters(r.Form)
 
 	if fDebug == "json" {
 		w.Header().Set("Content-Type", "application/json")
@@ -295,28 +296,28 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderPage(w, r, "index.gohtml", data)
+	srv.renderPage(w, r, "index.gohtml", data)
 }
 
-func RouteFilesJson(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeFilesJson(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cat.Library().List)
+	json.NewEncoder(w).Encode(srv.cat.Library().List)
 }
 
-func RouteAllFilesJson(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeAllFilesJson(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(cat.Library().ByHash)
+	json.NewEncoder(w).Encode(srv.cat.Library().ByHash)
 }
 
-func RouteLogin(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeLogin(w http.ResponseWriter, r *http.Request) {
 	fUser := r.FormValue("user")
 
 	data := struct {
@@ -336,7 +337,7 @@ func RouteLogin(w http.ResponseWriter, r *http.Request) {
 		foundPass := ""
 		userLowercase := strings.ToLower(fUser)
 
-		for k, v := range config.Users {
+		for k, v := range srv.cfg.Users {
 			if userLowercase == strings.ToLower(k) {
 				foundUser = k
 				foundPass = v
@@ -346,17 +347,17 @@ func RouteLogin(w http.ResponseWriter, r *http.Request) {
 
 		if !found {
 			data.Error = "User not found"
-			RenderPage(w, r, "login.gohtml", data)
+			srv.renderPage(w, r, "login.gohtml", data)
 			return
 		}
 
 		if !CheckPasswordHash(fPassword, foundPass) {
 			data.Error = "Wrong or empty password"
-			RenderPage(w, r, "login.gohtml", data)
+			srv.renderPage(w, r, "login.gohtml", data)
 			return
 		}
 
-		session, _ := sessionStore.Get(r, config.SessionCookieName)
+		session, _ := srv.sessions.Get(r, srv.cfg.SessionCookieName)
 		session.Values["authenticated"] = true
 		session.Values["user"] = foundUser
 		err := session.Save(r, w)
@@ -375,12 +376,12 @@ func RouteLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RenderPage(w, r, "login.gohtml", data)
+	srv.renderPage(w, r, "login.gohtml", data)
 }
 
-func RouteLogout(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeLogout(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		session, _ := sessionStore.Get(r, config.SessionCookieName)
+		session, _ := srv.sessions.Get(r, srv.cfg.SessionCookieName)
 		session.Values["authenticated"] = false
 		session.Values["user"] = nil
 		err := session.Save(r, w)
@@ -392,17 +393,17 @@ func RouteLogout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusFound)
 }
 
-func RouteThingDetailsJson(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeThingDetailsJson(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 
@@ -410,17 +411,17 @@ func RouteThingDetailsJson(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(thing)
 }
 
-func RouteThingDetails(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeThingDetails(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 
@@ -434,21 +435,21 @@ func RouteThingDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data.FilesRaw, _ = thing.Pages()
-	RenderPage(w, r, "thingDetails.gohtml", data)
+	srv.renderPage(w, r, "thingDetails.gohtml", data)
 }
 
-func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 	var err error
-	if _, ret := HandleAuth(w, r); ret {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 
@@ -461,7 +462,7 @@ func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 		staticMeta = thing.Static
 
 	default:
-		RenderError(w, r, "Invalid or unknown format")
+		srv.renderError(w, r, "Invalid or unknown format")
 		return
 	}
 
@@ -475,27 +476,27 @@ func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 		Metadata: staticMeta,
 	}
 
-	RenderPage(w, r, "thingEditMetadata.gohtml", data)
+	srv.renderPage(w, r, "thingEditMetadata.gohtml", data)
 }
 
-func RouteThingSaveMetadata(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingSaveMetadata(w http.ResponseWriter, r *http.Request) {
 	var err error
-	if _, ret := HandleAuth(w, r); ret {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(405)
-		RenderError(w, r, "method not allowed")
+		srv.renderError(w, r, "method not allowed")
 		return
 	}
 
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 
@@ -504,16 +505,16 @@ func RouteThingSaveMetadata(w http.ResponseWriter, r *http.Request) {
 
 	err = thing.SaveStaticFromForm(r.PostForm)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 	http.Redirect(w, r, thing.DetailsUrl(), http.StatusFound)
 }
 
-func RouteThingRatingJson(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingRatingJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAnyAuth(w, r)
+	_, ret := srv.checkAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -523,7 +524,7 @@ func RouteThingRatingJson(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -582,10 +583,10 @@ func RouteThingRatingJson(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 }
 
-func RouteThingCoverJson(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingCoverJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAnyAuth(w, r)
+	_, ret := srv.checkAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -595,7 +596,7 @@ func RouteThingCoverJson(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -648,10 +649,10 @@ func RouteThingCoverJson(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 }
 
-func RouteThingAddMark(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingAddMark(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAnyAuth(w, r)
+	_, ret := srv.checkAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -661,7 +662,7 @@ func RouteThingAddMark(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -700,10 +701,10 @@ func RouteThingAddMark(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 }
 
-func RouteThingSubMark(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingSubMark(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAnyAuth(w, r)
+	_, ret := srv.checkAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -713,7 +714,7 @@ func RouteThingSubMark(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -752,8 +753,8 @@ func RouteThingSubMark(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 }
 
-func RouteThingRead(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeThingRead(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
@@ -761,7 +762,7 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 	vHash := vars["hash"]
 	vPage, _ := strconv.Atoi(strings.TrimLeft(vars["page"], "/"))
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -770,7 +771,7 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 
 	readerData, err := NewReaderData(thing, vPage)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 
@@ -781,22 +782,22 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := struct {
-		Config     SugoiConfig
+		Config     config.Config
 		Title      string
 		ReaderData ReaderData
 	}{
 		Title:      thing.Title,
-		Config:     config,
+		Config:     *srv.cfg,
 		ReaderData: readerData,
 	}
 
-	RenderPage(w, r, "thingRead.gohtml", data)
+	srv.renderPage(w, r, "thingRead.gohtml", data)
 }
 
-func RouteThingPushRead(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeThingPushRead(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	_, ret := CheckAnyAuth(w, r)
+	_, ret := srv.checkAnyAuth(w, r)
 	if ret {
 		w.WriteHeader(403)
 		json.NewEncoder(w).Encode(JsonResponse{"Unauthorized"})
@@ -806,7 +807,7 @@ func RouteThingPushRead(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	vHash := vars["hash"]
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -830,8 +831,8 @@ func RouteThingPushRead(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JsonResponse{"method not allowed"})
 }
 
-func RouteThingFile(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeThingFile(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
@@ -841,12 +842,12 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 	fSize := r.FormValue("size")
 
 	if fSize == "thumb" {
-		if RenderThumbCache(w, r, vHash, vFile) {
+		if srv.renderThumbCache(w, r, vHash, vFile) {
 			return
 		}
 	}
 
-	thing, err := NewThingFromHash(vHash)
+	thing, err := srv.thing(vHash)
 	if err != nil {
 		w.WriteHeader(404)
 		json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -855,7 +856,7 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 
 	reader, closers, err := thing.Open(vFile)
 	if err != nil {
-		RenderError(w, r, err.Error())
+		srv.renderError(w, r, err.Error())
 		return
 	}
 
@@ -866,7 +867,7 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 	if fSize == "thumb" {
 		original, _, err := image.Decode(reader)
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 
@@ -883,7 +884,7 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 		out := image.NewRGBA(dstRect)
 		err = rez.Convert(out, in, rez.NewBicubicFilter())
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 		in = nil
@@ -900,12 +901,12 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 		err = jpeg.Encode(&encoded, out, &jpegOptions)
 		out = nil
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 
-		if config.CacheThumbnails {
-			ThumbCacheWrite(vHash, vFile, encoded.Bytes())
+		if srv.cfg.CacheThumbnails {
+			srv.thumbCacheWrite(vHash, vFile, encoded.Bytes())
 		}
 
 		w.Write(encoded.Bytes())
@@ -914,14 +915,14 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 		SetCacheHeader(w, r, 31536000)
 		_, err = io.Copy(w, reader)
 		if err != nil {
-			RenderError(w, r, err.Error())
+			srv.renderError(w, r, err.Error())
 			return
 		}
 	}
 }
 
-func RouteSystem(w http.ResponseWriter, r *http.Request) {
-	if _, ret := HandleAuth(w, r); ret {
+func (srv *Server) routeSystem(w http.ResponseWriter, r *http.Request) {
+	if _, ret := srv.handleAuth(w, r); ret {
 		return
 	}
 
@@ -934,12 +935,12 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 		switch fAction {
 		case "reindex":
 			w.Header().Set("Content-Type", "application/json")
-			if cat.Reindex.Running() {
-				json.NewEncoder(w).Encode(cat.Reindex.Status())
+			if srv.cat.Reindex.Running() {
+				json.NewEncoder(w).Encode(srv.cat.Reindex.Status())
 				return
 			}
 
-			err = cat.Reindex.Start()
+			err = srv.cat.Reindex.Start()
 			if err != nil {
 				json.NewEncoder(w).Encode(JsonError{err.Error()})
 				return
@@ -950,14 +951,14 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case "cancelReindex":
-			cat.Reindex.Cancel()
+			srv.cat.Reindex.Cancel()
 
 			http.Redirect(w, r, "/system?action=reindexStatus", http.StatusFound)
 			return
 
 		case "reload":
 			w.Header().Set("Content-Type", "application/json")
-			prev, count, err := cat.Reload()
+			prev, count, err := srv.cat.Reload()
 			if err != nil {
 				w.WriteHeader(500)
 				json.NewEncoder(w).Encode(JsonError{err.Error()})
@@ -979,7 +980,7 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 	switch fAction {
 	case "reindexStatus":
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(cat.Reindex.Status())
+		json.NewEncoder(w).Encode(srv.cat.Reindex.Status())
 		return
 	}
 
@@ -988,21 +989,21 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 		Reindex catalog.ReindexStatus
 	}{
 		Title:   "System",
-		Reindex: cat.Reindex.Status(),
+		Reindex: srv.cat.Reindex.Status(),
 	}
 
-	RenderPage(w, r, "system.gohtml", data)
+	srv.renderPage(w, r, "system.gohtml", data)
 }
 
-func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
-	_, notLoggedIn := CheckAnyAuth(w, r)
+func (srv *Server) routeSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
+	_, notLoggedIn := srv.checkAnyAuth(w, r)
 
 	data := struct {
 		Stop    bool   `json:"Stop,omitempty"`
 		Message string `json:"Message,omitempty"`
 	}{}
 
-	status := cat.Reindex.Status()
+	status := srv.cat.Reindex.Status()
 	if notLoggedIn || len(status.Log) == 0 {
 		data.Stop = true
 	} else {
@@ -1019,7 +1020,7 @@ func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(data)
 }
 
-func RouteFavicon(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) routeFavicon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/x-icon")
-	http.ServeFile(w, r, "static/favicon.ico")
+	http.ServeFile(w, r, filepath.Join(srv.assetsDir, "static", "favicon.ico"))
 }

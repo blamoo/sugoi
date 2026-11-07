@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"fmt"
@@ -6,12 +6,9 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
-	"sync"
+	"path/filepath"
 	"time"
 )
-
-var templateStore *template.Template
-var templateMu sync.Mutex
 
 // templateFuncs must not depend on the request: in non-debug mode templates
 // are parsed once and shared by every request.
@@ -34,13 +31,13 @@ var templateFuncs = template.FuncMap{
 	},
 }
 
-func parseTemplates() (*template.Template, error) {
-	tmpl, err := template.New("").Funcs(templateFuncs).ParseGlob("templates/*.gohtml")
+func (srv *Server) parseTemplates() (*template.Template, error) {
+	tmpl, err := template.New("").Funcs(templateFuncs).ParseGlob(filepath.Join(srv.assetsDir, "templates", "*.gohtml"))
 	if err != nil {
 		return nil, err
 	}
 
-	tmpl, err = tmpl.ParseGlob("pages/*.gohtml")
+	tmpl, err = tmpl.ParseGlob(filepath.Join(srv.assetsDir, "pages", "*.gohtml"))
 	if err != nil {
 		return nil, err
 	}
@@ -51,49 +48,49 @@ func parseTemplates() (*template.Template, error) {
 
 // getTemplates re-parses on every call in debug mode (edit templates without
 // restarting) and parses once otherwise. Either way the result is kept in
-// templateStore for currentTemplates.
-func getTemplates() (*template.Template, error) {
-	if config.Debug {
-		tmpl, err := parseTemplates()
+// srv.tmplStore for currentTemplates.
+func (srv *Server) getTemplates() (*template.Template, error) {
+	if srv.cfg.Debug {
+		tmpl, err := srv.parseTemplates()
 		if err != nil {
 			return nil, err
 		}
 
-		templateMu.Lock()
-		templateStore = tmpl
-		templateMu.Unlock()
+		srv.tmplMu.Lock()
+		srv.tmplStore = tmpl
+		srv.tmplMu.Unlock()
 		return tmpl, nil
 	}
 
-	templateMu.Lock()
-	defer templateMu.Unlock()
+	srv.tmplMu.Lock()
+	defer srv.tmplMu.Unlock()
 
-	if templateStore == nil {
-		tmpl, err := parseTemplates()
+	if srv.tmplStore == nil {
+		tmpl, err := srv.parseTemplates()
 		if err != nil {
 			return nil, err
 		}
-		templateStore = tmpl
+		srv.tmplStore = tmpl
 	}
 
-	return templateStore, nil
+	return srv.tmplStore, nil
 }
 
 // currentTemplates returns the last parsed templates without re-parsing, for
 // partials rendered from inside a page (Thing.HtmlTable).
-func currentTemplates() (*template.Template, error) {
-	templateMu.Lock()
-	tmpl := templateStore
-	templateMu.Unlock()
+func (srv *Server) currentTemplates() (*template.Template, error) {
+	srv.tmplMu.Lock()
+	tmpl := srv.tmplStore
+	srv.tmplMu.Unlock()
 
 	if tmpl != nil {
 		return tmpl, nil
 	}
-	return getTemplates()
+	return srv.getTemplates()
 }
 
-func RenderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
-	tmpl, err := getTemplates()
+func (srv *Server) renderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
+	tmpl, err := srv.getTemplates()
 	if err != nil {
 		fmt.Fprint(w, err)
 		return
@@ -106,7 +103,7 @@ func RenderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
 	}
 }
 
-func RenderError(w http.ResponseWriter, r *http.Request, message string) {
+func (srv *Server) renderError(w http.ResponseWriter, r *http.Request, message string) {
 	data := struct {
 		Title string
 		Error string
@@ -121,7 +118,7 @@ func RenderError(w http.ResponseWriter, r *http.Request, message string) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Del("Expires")
 	w.WriteHeader(400)
-	RenderPage(w, r, "error.gohtml", data)
+	srv.renderPage(w, r, "error.gohtml", data)
 }
 
 func SetCacheHeader(w http.ResponseWriter, r *http.Request, age uint) {

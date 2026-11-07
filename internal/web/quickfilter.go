@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"fmt"
@@ -17,10 +17,10 @@ type QuickFilter struct {
 	CurrentQueryString string
 }
 
-func ParseQuickFilters(currentQs url.Values) []QuickFilter {
+func (srv *Server) quickFilters(currentQs url.Values) []QuickFilter {
 	ret := []QuickFilter{}
 
-	for _, filter := range config.QuickFilters {
+	for _, filter := range srv.cfg.QuickFilters {
 		ret = append(ret, QuickFilter{
 			Label:              filter.Label,
 			Add:                filter.Add,

@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"crypto/sha256"
@@ -7,20 +7,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 
-	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var sessionStore *sessions.CookieStore
-
-func InitializeSession() {
-	sessionStore = sessions.NewCookieStore(config.SessionCookieKey)
-	sessionStore.Options.Secure = false
-	sessionStore.Options.SameSite = http.SameSiteStrictMode
-	sessionStore.MaxAge(config.SessionCookieMaxAge)
-}
 
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -32,8 +21,8 @@ func CheckPasswordHash(password, hash string) bool {
 	return err == nil
 }
 
-func CheckAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
-	session, _ := sessionStore.Get(r, config.SessionCookieName)
+func (srv *Server) checkAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+	session, _ := srv.sessions.Get(r, srv.cfg.SessionCookieName)
 	err := session.Save(r, w)
 	if err != nil {
 		slog.Error("saving session", "err", err)
@@ -49,7 +38,7 @@ func CheckAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 	return user, false
 }
 
-func CheckAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
+func (srv *Server) checkAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
 	fUser, fPassword, ok1 := r.BasicAuth()
 
 	if !ok1 {
@@ -61,7 +50,7 @@ func CheckAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
 	foundPass := ""
 	userLowercase := strings.ToLower(fUser)
 
-	for k, v := range config.Users {
+	for k, v := range srv.cfg.Users {
 		if userLowercase == strings.ToLower(k) {
 			foundUser = k
 			foundPass = v
@@ -73,23 +62,22 @@ func CheckAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
 		return "", true
 	}
 
-	if !checkPasswordHashCached(fPassword, foundPass) {
+	if !srv.checkPasswordHashCached(fPassword, foundPass) {
 		return "", true
 	}
 
 	return foundUser, false
 }
 
-// basicAuthOk remembers credentials that already passed bcrypt. HTTP Basic
+// srv.basicAuthOk remembers credentials that already passed bcrypt. HTTP Basic
 // sends the password on every request (every thumbnail), and a cost-14 bcrypt
 // takes about a second. Keys are sha256(hash + password), so plaintext
 // passwords are not kept in memory, and a changed hash in the config never
 // matches an old entry.
-var basicAuthOk sync.Map
 
-func checkPasswordHashCached(password, hash string) bool {
+func (srv *Server) checkPasswordHashCached(password, hash string) bool {
 	sum := sha256.Sum256([]byte(hash + "\x00" + password))
-	if _, ok := basicAuthOk.Load(sum); ok {
+	if _, ok := srv.basicAuthOk.Load(sum); ok {
 		return true
 	}
 
@@ -97,22 +85,22 @@ func checkPasswordHashCached(password, hash string) bool {
 		return false
 	}
 
-	basicAuthOk.Store(sum, struct{}{})
+	srv.basicAuthOk.Store(sum, struct{}{})
 	return true
 }
 
 // CheckAnyAuth accepts HTTP Basic or a session cookie, without redirecting.
 // Used by JSON endpoints, which answer 403 instead of sending to /login.
-func CheckAnyAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
-	if user, failed := CheckAuthBasic(w, r); !failed {
+func (srv *Server) checkAnyAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+	if user, failed := srv.checkAuthBasic(w, r); !failed {
 		return user, false
 	}
 
-	return CheckAuth(w, r)
+	return srv.checkAuth(w, r)
 }
 
-func HandleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
-	userSession, failedSession := CheckAnyAuth(w, r)
+func (srv *Server) handleAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
+	userSession, failedSession := srv.checkAnyAuth(w, r)
 
 	if failedSession {
 		returnPath := fmt.Sprintf("%s?%s", r.URL.Path, r.URL.RawQuery)

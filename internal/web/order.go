@@ -1,4 +1,4 @@
-package main
+package web
 
 import "fmt"
 
@@ -10,7 +10,7 @@ type OrderField struct {
 	Value string
 }
 
-func InitializeOrder() {
+func init() {
 	fields := map[string]string{
 		"created_at": "Created",
 		"id":         "Id",

@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"io"
@@ -10,12 +10,12 @@ import (
 	"github.com/blamoo/sugoi/internal/fsutil"
 )
 
-func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file string) bool {
-	if !config.CacheThumbnails {
+func (srv *Server) renderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file string) bool {
+	if !srv.cfg.CacheThumbnails {
 		return false
 	}
 
-	fname := config.CacheFile("thing/file", hash, file)
+	fname := srv.cfg.CacheFile("thing/file", hash, file)
 	os.MkdirAll(path.Dir(fname), 0755)
 
 	f, err := os.Open(fname)
@@ -47,8 +47,8 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 
 // ThumbCacheWrite stores an encoded thumbnail. Written atomically so a
 // concurrent request never serves a half-written image.
-func ThumbCacheWrite(hash string, file string, data []byte) {
-	fname := config.CacheFile("thing/file", hash, file)
+func (srv *Server) thumbCacheWrite(hash string, file string, data []byte) {
+	fname := srv.cfg.CacheFile("thing/file", hash, file)
 
 	err := fsutil.WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
 		_, err := w.Write(data)

@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"bytes"
@@ -18,14 +18,16 @@ import (
 // Thing adds the HTML/URL helpers used by the templates to a catalog item.
 type Thing struct {
 	*catalog.Thing
+
+	srv *Server
 }
 
-func NewThingFromHash(hash string) (*Thing, error) {
-	t, err := cat.Get(hash)
+func (srv *Server) thing(hash string) (*Thing, error) {
+	t, err := srv.cat.Get(hash)
 	if err != nil {
 		return nil, err
 	}
-	return &Thing{t}, nil
+	return &Thing{Thing: t, srv: srv}, nil
 }
 
 // TrySaveCover sets the cover from a page URL (as listed by ListFiles).
@@ -162,7 +164,7 @@ func (t *Thing) HtmlTable(options ...string) template.HTML {
 		data.NoMarks = true
 	}
 
-	tmpl, err := currentTemplates()
+	tmpl, err := t.srv.currentTemplates()
 	if err != nil {
 		return template.HTML(err.Error())
 	}
