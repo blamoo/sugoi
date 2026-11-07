@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/gorilla/mux"
@@ -90,12 +93,65 @@ func main() {
 
 	fmt.Printf("Listening on %s\n", httproot)
 
-	err = http.ListenAndServe(fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort), router)
-	if err != nil {
+	server := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort),
+		Handler: router,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- server.ListenAndServe()
+	}()
+
+	select {
+	case err = <-serveErr:
+		// Failed to start (port in use, permission denied...).
 		fmt.Println(err)
 		os.Exit(4)
+
+	case <-ctx.Done():
+		stop() // a second Ctrl+C kills the process immediately
+		Shutdown(server)
 	}
+
 	fmt.Println("owo")
+}
+
+const shutdownRequestTimeout = 10 * time.Second
+const shutdownReindexTimeout = 30 * time.Second
+
+// Shutdown stops accepting connections, waits for in-flight requests, stops a
+// running reindex and closes the search index so it's left consistent.
+func Shutdown(server *http.Server) {
+	fmt.Println("Shutting down...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownRequestTimeout)
+	defer cancel()
+	err := server.Shutdown(ctx)
+	if err != nil {
+		fmt.Println("Some requests didn't finish in time:", err)
+	}
+
+	if reindexJob.Running {
+		fmt.Println("Cancelling the running reindex; the index will be incomplete until a new reindex")
+		reindexJob.RequestCancel = true
+
+		deadline := time.Now().Add(shutdownReindexTimeout)
+		for reindexJob.Running && time.Now().Before(deadline) {
+			time.Sleep(100 * time.Millisecond)
+		}
+		if reindexJob.Running {
+			fmt.Println("Reindex didn't stop in time")
+		}
+	}
+
+	err = bleveIndex.Close()
+	if err != nil {
+		fmt.Println("Closing the index:", err)
+	}
 }
 
 func ManageUsers() {
