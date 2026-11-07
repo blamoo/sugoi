@@ -73,9 +73,7 @@ window.sugoi.reader = {
         });
 
         window.addEventListener('popstate', (event) => {
-            if ('page' in event.state) {
-                this.setPage(event.state.page);
-            }
+            this.onPopState(event);
         });
 
         window.addEventListener('keydown', (event) => this.onKeydown(event));
@@ -197,6 +195,37 @@ window.sugoi.reader = {
 
         this.resetSlideshow();
         return true;
+    },
+
+    onPopState: function (event) {
+        var match = location.pathname.match(/^\/thing\/read\/([a-z0-9]+)(?:\/(\d+))?/);
+        if (!match) {
+            return;
+        }
+
+        var hash = match[1];
+        var page = match[2] ? parseInt(match[2], 10) : 0;
+
+        if (this.params && hash === this.params.hash) {
+            this.setPage(page);
+            return;
+        }
+
+        this.$target.css('min-height', this.$target.outerHeight());
+        this.$targetImg.attr('src', BLANK_IMAGE);
+        this.$searchTagsContainer.hide();
+        this.$fullscreenPageCounter.addClass('d-none');
+        this.$loadingSpinner.removeClass('d-none');
+
+        $.get('/thing/read/' + hash + '/' + page + '?json=1')
+            .done((data) => this.load(data))
+            .fail(() => this.toaster("Failed to load"))
+            .always(() => {
+                this.$target.css('min-height', '');
+                this.$searchTagsContainer.show();
+                this.$fullscreenPageCounter.removeClass('d-none');
+                this.$loadingSpinner.addClass('d-none');
+            });
     },
 
     onKeydown: function (event) {

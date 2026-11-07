@@ -764,6 +764,12 @@ func RouteThingRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if ok, _ := strconv.ParseBool(r.FormValue("json")); ok {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(readerData)
+		return
+	}
+
 	data := struct {
 		Config     SugoiConfig
 		Title      string
