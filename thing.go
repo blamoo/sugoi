@@ -473,16 +473,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 			return nil
 		}
 
-		extension := filepath.Ext(path)
-		// #TODO move this list of extensions to config file
-		allowed := []string{
-			".png",
-			".jpg",
-			".jpeg",
-			".webp",
-		}
-
-		if !slices.Contains(allowed, extension) {
+		if !isImageFile(path) {
 			return nil
 		}
 
@@ -509,6 +500,16 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 	}
 
 	return files, nil
+}
+
+// imageExtensions are the archive entries shown as pages.
+// #TODO move this list of extensions to config file
+var imageExtensions = []string{".png", ".jpg", ".jpeg", ".webp"}
+
+// isImageFile matches the extension case-insensitively: many archives use
+// names like 001.JPG.
+func isImageFile(name string) bool {
+	return slices.Contains(imageExtensions, strings.ToLower(filepath.Ext(name)))
 }
 
 func (t *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
