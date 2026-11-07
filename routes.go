@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -886,19 +887,20 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 			Quality: 60,
 		}
 
-		if config.CacheThumbnails {
-			cacheWriter := ThumbCacheTarget(vHash, vFile)
-			if cacheWriter != nil {
-				jpeg.Encode(cacheWriter, out, &jpegOptions)
-				cacheWriter.Close()
-			}
-		}
-
-		err = jpeg.Encode(w, out, &jpegOptions)
+		// Encode once; the same bytes go to the cache and the response.
+		var encoded bytes.Buffer
+		err = jpeg.Encode(&encoded, out, &jpegOptions)
 		out = nil
 		if err != nil {
+			RenderError(w, r, err.Error())
 			return
 		}
+
+		if config.CacheThumbnails {
+			ThumbCacheWrite(vHash, vFile, encoded.Bytes())
+		}
+
+		w.Write(encoded.Bytes())
 	} else {
 		w.Header().Set("Content-Type", wantedMime)
 		SetCacheHeader(w, r, 31536000)

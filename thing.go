@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -146,23 +145,6 @@ func (t *Thing) SaveStaticFromForm(form url.Values) error {
 	t.FileMetadataStatic = *current
 	t.FileMetadataStatic.FillEmptyFields(t.File)
 	return t.File.Reindex()
-}
-
-func writeJsonFile(file string, v any) error {
-	err := os.MkdirAll(path.Dir(file), 0755)
-	if err != nil {
-		return err
-	}
-
-	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	e := json.NewEncoder(f)
-	e.SetIndent("", "\t")
-	return e.Encode(v)
 }
 
 // TrySaveRating sets the rating; with toggle, setting the current rating again
@@ -511,18 +493,14 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 	natsort.Sort(files)
 	// sort.Strings(files)
 
-	f.Close()
-
 	if len(files) > 0 {
-		f, err = os.Create(fname)
+		filesJoin := strings.Join(files, "\n")
+		err := WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
+			_, err := io.WriteString(w, filesJoin)
+			return err
+		})
 		if err == nil {
-			defer f.Close()
-
-			filesJoin := strings.Join(files, "\n")
-			n, err := io.WriteString(f, filesJoin)
-			if err == nil {
-				debugPrintf("File list cache write (%d bytes): %s\n", n, fname)
-			}
+			debugPrintf("File list cache write (%d bytes): %s\n", len(filesJoin), fname)
 		}
 	} else {
 		debugPrintf("Not writing empty file list cache: %s\n", fname)

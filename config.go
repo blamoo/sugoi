@@ -49,23 +49,16 @@ func (c SugoiConfig) CacheFile(elem ...string) string {
 }
 
 func (c SugoiConfig) Save(to string) error {
-	var err error
-	configFile, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-
-	if err != nil {
-		return err
-	}
-	defer configFile.Close()
-
 	b, err := json.MarshalIndent(c, "", "\t")
-
 	if err != nil {
 		return err
 	}
 
-	_, err = configFile.Write(b)
-
-	return err
+	// 0600: the file holds the session key and password hashes.
+	return WriteFileAtomic(to, 0600, true, func(w io.Writer) error {
+		_, err := w.Write(b)
+		return err
+	})
 }
 
 func (c SugoiConfig) Export() (string, error) {

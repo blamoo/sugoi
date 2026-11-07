@@ -42,15 +42,19 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 	return true
 }
 
-func ThumbCacheTarget(hash string, file string) io.WriteCloser {
+// ThumbCacheWrite stores an encoded thumbnail. Written atomically so a
+// concurrent request never serves a half-written image.
+func ThumbCacheWrite(hash string, file string, data []byte) {
 	fname := config.CacheFile("thing/file", hash, file)
 
-	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	err := WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
+		_, err := w.Write(data)
+		return err
+	})
 	if err != nil {
 		debugPrintf("Cache write error: %s (%s)\n", fname, err)
-		return nil
+		return
 	}
 
 	debugPrintf("Cached: %s\n", fname)
-	return f
 }

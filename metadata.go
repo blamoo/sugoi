@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/url"
 	"os"
-	"path"
 	"time"
 )
 
@@ -72,21 +72,10 @@ type FileMetadata struct {
 }
 
 func CreateMetadataEmptyFile(file string) error {
-	var err error
-
-	dir := path.Dir(file)
-	err = os.MkdirAll(dir, 0755)
-	if err != nil {
+	err := WriteFileAtomic(file, 0644, true, func(w io.Writer) error {
+		_, err := io.WriteString(w, "{}")
 		return err
-	}
-
-	f, err := os.OpenFile(file, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString("{}")
+	})
 	if err != nil {
 		return err
 	}
