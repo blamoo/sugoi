@@ -1,4 +1,4 @@
-package main
+package search
 
 import (
 	"fmt"
@@ -14,14 +14,15 @@ func autocompleteValues(entries []AutocompleteEntry) []string {
 }
 
 func TestAutocompleteFromIndex(t *testing.T) {
-	setupTestEnv(t)
-	indexDocs(t, map[string]FileMetadata{
+	idx := newTestIndex(t)
+	indexDocs(t, idx, map[string]Document{
 		"1": meta("bar", 5, "Long Hair", "Glasses"),
 		"2": meta("foo bar", 0, "Long Hair", "Long Coat"),
 		"3": meta("bar baz", 0, "Short Hair", "Glasses"),
 	})
 
-	if err := RebuildAutocomplete(); err != nil {
+	a := NewAutocompleter(idx)
+	if err := a.Rebuild(); err != nil {
 		t.Fatal(err)
 	}
 
@@ -44,63 +45,65 @@ func TestAutocompleteFromIndex(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := autocompleteValues(Autocomplete(c.q))
+		got := autocompleteValues(a.Suggest(c.q, false))
 		if fmt.Sprint(got) != fmt.Sprint(c.want) {
 			t.Errorf("%q: got %v, want %v", c.q, got, c.want)
 		}
 	}
 
 	// counts come from live documents only
-	for _, e := range Autocomplete("glas") {
+	for _, e := range a.Suggest("glas", false) {
 		if e.Value == "Glasses" && e.Count != 2 {
 			t.Errorf("Glasses count = %d, want 2", e.Count)
 		}
 	}
-	for _, e := range Autocomplete("rating:5") {
+	for _, e := range a.Suggest("rating:5", false) {
 		if e.Count != 1 {
 			t.Errorf("rating:5 count = %d, want 1", e.Count)
 		}
 	}
 
 	// the inserted text is a valid exact search
-	first := Autocomplete("bar")[0]
+	first := a.Suggest("bar", false)[0]
 	if first.Insert != `artist_kw:"bar"` {
 		t.Errorf("insert = %s", first.Insert)
 	}
-	if ids := searchIDs(t, first.Insert); len(ids) != 1 || !ids["1"] {
+	if ids := searchIDs(t, idx, first.Insert); len(ids) != 1 || !ids["1"] {
 		t.Errorf("%s matched %v", first.Insert, ids)
 	}
 }
 
 func TestAutocompleteCountsIgnoreReplacedDocs(t *testing.T) {
-	setupTestEnv(t)
-	indexDocs(t, map[string]FileMetadata{"1": meta("old name", 0)})
-	indexDocs(t, map[string]FileMetadata{"1": meta("new name", 0)})
+	idx := newTestIndex(t)
+	indexDocs(t, idx, map[string]Document{"1": meta("old name", 0)})
+	indexDocs(t, idx, map[string]Document{"1": meta("new name", 0)})
 
-	if err := RebuildAutocomplete(); err != nil {
+	a := NewAutocompleter(idx)
+	if err := a.Rebuild(); err != nil {
 		t.Fatal(err)
 	}
 
-	if got := autocompleteValues(Autocomplete("old")); got != nil {
+	if got := autocompleteValues(a.Suggest("old", false)); got != nil {
 		t.Errorf("replaced value still suggested: %v", got)
 	}
-	if got := autocompleteValues(Autocomplete("new")); fmt.Sprint(got) != "[artist:new name]" {
+	if got := autocompleteValues(a.Suggest("new", false)); fmt.Sprint(got) != "[artist:new name]" {
 		t.Errorf("got %v", got)
 	}
 }
 
 func TestAutocompleteLimit(t *testing.T) {
-	setupTestEnv(t)
-	docs := map[string]FileMetadata{}
+	idx := newTestIndex(t)
+	docs := map[string]Document{}
 	for i := 0; i < 30; i++ {
 		docs[fmt.Sprint(i)] = meta(fmt.Sprintf("artist %02d", i), 0)
 	}
-	indexDocs(t, docs)
+	indexDocs(t, idx, docs)
 
-	if err := RebuildAutocomplete(); err != nil {
+	a := NewAutocompleter(idx)
+	if err := a.Rebuild(); err != nil {
 		t.Fatal(err)
 	}
-	if n := len(Autocomplete("artist")); n != autocompleteLimit {
+	if n := len(a.Suggest("artist", false)); n != autocompleteLimit {
 		t.Errorf("got %d suggestions, want %d", n, autocompleteLimit)
 	}
 }
@@ -120,5 +123,23 @@ func TestWordPrefixMatch(t *testing.T) {
 		if got := wordPrefixMatch(c.s, c.prefix); got != c.want {
 			t.Errorf("wordPrefixMatch(%q, %q) = %v", c.s, c.prefix, got)
 		}
+	}
+}
+
+func TestSuggestRebuildsWhenDirty(t *testing.T) {
+	idx := newTestIndex(t)
+	a := NewAutocompleter(idx)
+	if err := a.Rebuild(); err != nil {
+		t.Fatal(err)
+	}
+
+	indexDocs(t, idx, map[string]Document{"1": meta("late artist", 0)})
+	a.MarkDirty()
+
+	if got := autocompleteValues(a.Suggest("late", false)); got != nil {
+		t.Errorf("rebuild=false must keep the old list, got %v", got)
+	}
+	if got := autocompleteValues(a.Suggest("late", true)); fmt.Sprint(got) != "[artist:late artist]" {
+		t.Errorf("got %v", got)
 	}
 }

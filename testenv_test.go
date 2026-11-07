@@ -6,6 +6,7 @@ import (
 	"github.com/blevesearch/bleve/v2"
 
 	"github.com/blamoo/sugoi/internal/library"
+	"github.com/blamoo/sugoi/internal/search"
 )
 
 // setupTestEnv points the package globals (config, file list, search index)
@@ -14,12 +15,12 @@ import (
 func setupTestEnv(t *testing.T, keys ...string) {
 	t.Helper()
 
-	oldConfig, oldPointers, oldIndex := config, filePointers, bleveIndex
+	oldConfig, oldPointers, oldIndex, oldAutocompleter := config, filePointers, bleveIndex, autocompleter
 	t.Cleanup(func() {
 		if bleveIndex != nil && bleveIndex != oldIndex {
 			bleveIndex.Close()
 		}
-		config, filePointers, bleveIndex = oldConfig, oldPointers, oldIndex
+		config, filePointers, bleveIndex, autocompleter = oldConfig, oldPointers, oldIndex, oldAutocompleter
 		reindexJob.Running = false
 	})
 
@@ -30,11 +31,12 @@ func setupTestEnv(t *testing.T, keys ...string) {
 		DirVars:     map[string]string{"LIB": dir + "/library"},
 	}
 
-	idx, err := bleve.NewMemOnly(BuildNewMapping())
+	idx, err := search.OpenMem()
 	if err != nil {
 		t.Fatal(err)
 	}
 	bleveIndex = idx
+	autocompleter = search.NewAutocompleter(idx)
 
 	filePointers = library.New(&config, keys)
 }
@@ -58,7 +60,7 @@ func searchIDs(t *testing.T, q string) map[string]bool {
 		t.Fatal(err)
 	}
 
-	req := bleve.NewSearchRequest(shouldToMust(parsed))
+	req := bleve.NewSearchRequest(search.ShouldToMust(parsed))
 	req.Size = 1000
 	res, err := bleveIndex.Search(req)
 	if err != nil {

@@ -5,9 +5,9 @@ import (
 	"html"
 	"html/template"
 	"net/url"
-	"slices"
 	"strconv"
-	"strings"
+
+	"github.com/blamoo/sugoi/internal/search"
 )
 
 type SearchTermType int
@@ -30,10 +30,10 @@ func (t SearchTerm) Url() string {
 
 	switch t.Type {
 	case TYPE_INT:
-		q.Set("q", BuildBleveSearchTermInt(t.Key, t.Label))
+		q.Set("q", search.TermInt(t.Key, t.Label))
 
 	case TYPE_TEXT:
-		q.Set("q", BuildBleveSearchTerm(searchField(t.Key), t.Label))
+		q.Set("q", search.Term(search.KeywordField(t.Key), t.Label))
 	}
 
 	u.RawQuery = q.Encode()
@@ -45,15 +45,6 @@ func (t SearchTerm) Badge() template.HTML {
 		return template.HTML(fmt.Sprintf(`<a class="badge bg-tag-%s text-decoration-none" href="%s">%s</a>`, t.Key, html.EscapeString(t.Url()), html.EscapeString(t.Label)))
 	}
 	return template.HTML(fmt.Sprintf(`<a class="badge bg-tag-%s text-decoration-none" href="%s">%s <small>(%d)</small></a>`, t.Key, html.EscapeString(t.Url()), html.EscapeString(t.Label), t.Count))
-}
-
-// searchField maps a field to its untokenized "_kw" copy when one exists, so a
-// link to artist "bar" matches only "bar" and not "foo bar" or "bar baz".
-func searchField(key string) string {
-	if slices.Contains(metadataKeywordsFields, strings.ToLower(key)) {
-		return key + "_kw"
-	}
-	return key
 }
 
 func NewSearchTerm(key string, val string) SearchTerm {

@@ -17,6 +17,8 @@ import (
 	"github.com/blamoo/sugoi/internal/metadata"
 
 	"github.com/blamoo/sugoi/internal/fsutil"
+
+	"github.com/blamoo/sugoi/internal/search"
 )
 
 type Thing struct {
@@ -377,7 +379,7 @@ func (t *Thing) CollectionDetailsUrl() string {
 	u := new(url.URL)
 	u.Path = "/"
 	q := u.Query()
-	q.Set("q", BuildBleveSearchTerm(searchField("collection"), t.Collection))
+	q.Set("q", search.Term(search.KeywordField("collection"), t.Collection))
 	u.RawQuery = q.Encode()
 	return u.String()
 }
@@ -433,7 +435,7 @@ func (t *Thing) SeriesUrls() map[string]string {
 		u := new(url.URL)
 		u.Path = "/"
 		q := u.Query()
-		q.Set("q", BuildBleveSearchTerm("series", name))
+		q.Set("q", search.Term("series", name))
 		u.RawQuery = q.Encode()
 
 		ret[u.String()] = name

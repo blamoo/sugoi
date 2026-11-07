@@ -1,53 +1,26 @@
-package main
+package search
 
 import (
-	"os"
-	"path"
-	"strings"
-
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
-	"github.com/blevesearch/bleve/v2/search/query"
 )
 
-var inQuotesReplacer *strings.Replacer
-
-func init() {
-	inQuotesReplacer = strings.NewReplacer(
-		"\"", "\\\"",
-		"\\", "\\\\",
-	)
+// KeywordFields get an untokenized "<field>_kw" copy for exact matches
+// (artist_kw:"bar" doesn't match "foo bar") and facets.
+var KeywordFields = []string{
+	"tags",
+	"artist",
+	"parody",
+	"magazine",
+	"collection",
 }
 
-func InitializeBleve() error {
-	path := path.Join(config.DatabaseDir, "sugoi.bleve")
-	var err error
-
-	stat, err := os.Stat(path)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return err
-		}
-	}
-
-	if stat == nil {
-		mapping := BuildNewMapping()
-		bleveIndex, err = bleve.New(path, mapping)
-	} else {
-		bleveIndex, err = bleve.Open(path)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func BuildNewMapping() *mapping.IndexMappingImpl {
+// BuildMapping is the index mapping. It only applies when an index is
+// created, so changing it requires a full reindex.
+func BuildMapping() *mapping.IndexMappingImpl {
 	indexMapping := bleve.NewIndexMapping()
 	indexMapping.AddCustomAnalyzer("simpleUnicode", map[string]any{
 		"type":      custom.Name,
@@ -90,71 +63,9 @@ func BuildNewMapping() *mapping.IndexMappingImpl {
 	thingMapping.AddSubDocumentMapping("files", disabledMapping)
 	thingMapping.AddSubDocumentMapping("urls", disabledMapping)
 
-	for _, name := range metadataKeywordsFields {
+	for _, name := range KeywordFields {
 		thingMapping.AddFieldMappingsAt(name+"_kw", keywordMapping)
 	}
 
 	return indexMapping
-}
-
-func BuildBleveSearchTerm(key string, val string) string {
-	sb := strings.Builder{}
-
-	sb.WriteString("+")
-	sb.WriteString(strings.ToLower(key))
-	sb.WriteString(`:"`)
-	sb.WriteString(inQuotesReplacer.Replace(val))
-	sb.WriteString(`"`)
-
-	return sb.String()
-}
-
-func BuildBleveSearchTermMap(key string, val string) string {
-	sb := strings.Builder{}
-
-	spl := strings.SplitN(key, ".", 2)
-
-	sb.WriteString("+")
-	if len(spl) == 2 {
-		sb.WriteString(strings.ToLower(spl[0]))
-		sb.WriteString(".")
-		sb.WriteString(spl[1])
-	} else {
-		sb.WriteString(strings.ToLower(key))
-	}
-	sb.WriteString(`:"`)
-	sb.WriteString(inQuotesReplacer.Replace(val))
-	sb.WriteString(`"`)
-
-	return sb.String()
-}
-
-func BuildBleveSearchTermInt(key string, val string) string {
-	sb := strings.Builder{}
-
-	sb.WriteString("+")
-	sb.WriteString(strings.ToLower(key))
-	sb.WriteString(":")
-	sb.WriteString(inQuotesReplacer.Replace(val))
-
-	return sb.String()
-}
-
-// shouldToMust makes unprefixed query-string terms required, so "A B" means
-// A AND B instead of Bleve's default (optional terms that only affect score).
-// Explicit "+" and "-" terms keep their meaning.
-func shouldToMust(q query.Query) query.Query {
-	bq, ok := q.(*query.BooleanQuery)
-	if !ok || bq.Should == nil {
-		return q
-	}
-
-	dq, ok := bq.Should.(*query.DisjunctionQuery)
-	if !ok {
-		return q
-	}
-
-	bq.AddMust(dq.Disjuncts...)
-	bq.Should = nil
-	return bq
 }

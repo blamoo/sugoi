@@ -31,6 +31,8 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/blamoo/sugoi/internal/fsutil"
+
+	"github.com/blamoo/sugoi/internal/search"
 )
 
 func Routes(router *mux.Router) {
@@ -129,7 +131,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		parsed = shouldToMust(parsed)
+		parsed = search.ShouldToMust(parsed)
 
 		r := strings.NewReplacer(
 			"+", "",
@@ -147,14 +149,14 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 
 	data.Title = titleBuilder.String()
 
-	search := bleve.NewSearchRequest(query)
+	searchReq := bleve.NewSearchRequest(query)
 
 	if ok, _ := strconv.ParseBool(r.FormValue("random")); ok {
-		sort := "random." + strconv.Itoa(rand.IntN(RANDOM_POOL_SIZE))
-		search.SortBy([]string{sort})
-		search.Size = RANDOM_SAMPLE_SIZE
+		sort := "random." + strconv.Itoa(rand.IntN(search.RandomPoolSize))
+		searchReq.SortBy([]string{sort})
+		searchReq.Size = RANDOM_SAMPLE_SIZE
 
-		searchResults, err := bleveIndex.Search(search)
+		searchResults, err := bleveIndex.Search(searchReq)
 		if err != nil {
 			RenderError(w, r, err.Error())
 			return
@@ -186,29 +188,29 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	search.Size = pageSize + 1
-	search.From = data.Page * pageSize
+	searchReq.Size = pageSize + 1
+	searchReq.From = data.Page * pageSize
 	if fDebug == "raw" {
-		search.Fields = []string{"*"}
+		searchReq.Fields = []string{"*"}
 	} else {
-		search.Fields = []string{"ID"}
+		searchReq.Fields = []string{"ID"}
 	}
 
 	if data.Order != "" {
-		search.SortBy([]string{data.Order})
+		searchReq.SortBy([]string{data.Order})
 	}
 
 	if fDebug == "query" {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(search)
+		json.NewEncoder(w).Encode(searchReq)
 		return
 	}
 
-	for _, field := range metadataKeywordsFields {
-		search.AddFacet(field, bleve.NewFacetRequest(field+"_kw", 50))
+	for _, field := range search.KeywordFields {
+		searchReq.AddFacet(field, bleve.NewFacetRequest(field+"_kw", 50))
 	}
 
-	searchResults, err := bleveIndex.Search(search)
+	searchResults, err := bleveIndex.Search(searchReq)
 	if err != nil {
 		RenderError(w, r, err.Error())
 		return
@@ -224,7 +226,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 			name, _ := strings.CutSuffix(facet.Field, "_kw")
 			searchTerm := NewSearchTerm(name, term.Term)
 			searchTerm.Count = term.Count
-			searchTerm.Weight = slices.Index(metadataKeywordsFields, name)
+			searchTerm.Weight = slices.Index(search.KeywordFields, name)
 			data.SearchTags = append(data.SearchTags, searchTerm)
 		}
 	}

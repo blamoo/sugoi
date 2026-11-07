@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log/slog"
-	"os"
-	"path"
 	"time"
 )
 
@@ -35,14 +33,15 @@ func (job *ReindexJob) Start() error {
 
 	go func() {
 		var err error
-		job.Log = append(job.Log, "Closing old index")
-		bleveIndex.Close()
-
-		job.Log = append(job.Log, "Removing old index")
-		os.RemoveAll(path.Join(config.DatabaseDir, "sugoi.bleve"))
-
-		job.Log = append(job.Log, "Creating new index")
-		InitializeBleve()
+		job.Log = append(job.Log, "Recreating the index")
+		err = bleveIndex.Recreate()
+		if err != nil {
+			job.Log = append(job.Log, fmt.Sprintf("Error: %s", err))
+			slog.Error("recreating the search index", "err", err)
+			job.FinishTime = time.Now()
+			job.Running = false
+			return
+		}
 
 		batch := bleveIndex.NewBatch()
 
@@ -97,7 +96,7 @@ func (job *ReindexJob) Start() error {
 			slog.Debug("indexed fields", "fields", v)
 		}
 
-		MarkAutocompleteDirty()
+		autocompleter.MarkDirty()
 		job.FinishTime = time.Now()
 		job.Running = false
 	}()

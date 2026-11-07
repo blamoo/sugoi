@@ -12,19 +12,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/blevesearch/bleve/v2"
-
 	"github.com/blamoo/sugoi/internal/library"
 	"github.com/gorilla/mux"
 
 	"golang.org/x/term"
+
+	"github.com/blamoo/sugoi/internal/search"
 )
 
 //go:generate go run cmd/static/main.go
 
 var configPath string
 var filePointers *library.Library
-var bleveIndex bleve.Index
+var bleveIndex *search.Index
+var autocompleter *search.Autocompleter
 var httproot string
 var reindexJob ReindexJob
 
@@ -58,7 +59,7 @@ func main() {
 	}
 	slog.Info("file list loaded", "files", len(filePointers.List))
 
-	err = InitializeBleve()
+	bleveIndex, err = search.Open(config.DatabaseDir)
 	if err != nil {
 		slog.Error("opening the search index", "err", err)
 		os.Exit(8)
@@ -66,7 +67,8 @@ func main() {
 
 	InitializeOrder()
 
-	err = RebuildAutocomplete()
+	autocompleter = search.NewAutocompleter(bleveIndex)
+	err = autocompleter.Rebuild()
 	if err != nil {
 		slog.Error("building autocomplete", "err", err)
 	}

@@ -13,7 +13,6 @@ type SlideshowPreset = sugoiconfig.SlideshowPreset
 
 var config SugoiConfig
 
-const RANDOM_POOL_SIZE = 10
 const RANDOM_SAMPLE_SIZE = 1000
 
 func InitializeConfig() error {
