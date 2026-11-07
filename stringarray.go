@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -50,32 +51,45 @@ func (s *StringArray) SetFromTextArea(str string) {
 	}
 }
 
+// IdArray holds source ids such as "/item/1970/abc123". It reads both the
+// array written by the importer (theplan) and the older {"source": "id"}
+// object, whose entries become "source/id". It is always written as an
+// array, so a read-then-save never changes or drops the ids.
 type IdArray []string
 
 func (t *IdArray) UnmarshalJSON(data []byte) error {
-	var m map[string]string
-	err := json.Unmarshal(data, &m)
-	if err != nil {
+	if string(data) == "null" {
+		*t = nil
 		return nil
 	}
 
-	for k, v := range m {
-		*t = append(*t, k+"/"+v)
+	var asArray []string
+	if err := json.Unmarshal(data, &asArray); err == nil {
+		*t = asArray
+		return nil
 	}
 
-	return nil
+	var asMap map[string]string
+	if err := json.Unmarshal(data, &asMap); err == nil {
+		keys := make([]string, 0, len(asMap))
+		for k := range asMap {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		*t = nil
+		for _, k := range keys {
+			*t = append(*t, k+"/"+asMap[k])
+		}
+		return nil
+	}
+
+	return fmt.Errorf("id_source should be a string array or an object")
 }
 
 func (t IdArray) MarshalJSON() ([]byte, error) {
-	// return json.Marshal(([]string)(t))
-	m := make(map[string]string, len(t))
-
-	for _, v := range t {
-		spl := strings.SplitN(v, "/", 2)
-		if len(spl) == 2 {
-			m[spl[0]] = spl[1]
-		}
+	if t == nil {
+		return []byte("[]"), nil
 	}
-
-	return json.Marshal(m)
+	return json.Marshal([]string(t))
 }
