@@ -33,6 +33,10 @@ import (
 	"github.com/blamoo/sugoi/internal/fsutil"
 
 	"github.com/blamoo/sugoi/internal/search"
+
+	"github.com/blamoo/sugoi/internal/catalog"
+
+	"github.com/blamoo/sugoi/internal/metadata"
 )
 
 func Routes(router *mux.Router) {
@@ -156,7 +160,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		searchReq.SortBy([]string{sort})
 		searchReq.Size = RANDOM_SAMPLE_SIZE
 
-		searchResults, err := bleveIndex.Search(searchReq)
+		searchResults, err := cat.Index.Search(searchReq)
 		if err != nil {
 			RenderError(w, r, err.Error())
 			return
@@ -210,7 +214,7 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 		searchReq.AddFacet(field, bleve.NewFacetRequest(field+"_kw", 50))
 	}
 
-	searchResults, err := bleveIndex.Search(searchReq)
+	searchResults, err := cat.Index.Search(searchReq)
 	if err != nil {
 		RenderError(w, r, err.Error())
 		return
@@ -300,7 +304,7 @@ func RouteFilesJson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(filePointers.List)
+	json.NewEncoder(w).Encode(cat.Library().List)
 }
 
 func RouteAllFilesJson(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +313,7 @@ func RouteAllFilesJson(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(filePointers.ByHash)
+	json.NewEncoder(w).Encode(cat.Library().ByHash)
 }
 
 func RouteLogin(w http.ResponseWriter, r *http.Request) {
@@ -429,7 +433,7 @@ func RouteThingDetails(w http.ResponseWriter, r *http.Request) {
 		Thing: thing,
 	}
 
-	data.FilesRaw, _ = thing.ListFilesRaw()
+	data.FilesRaw, _ = thing.Pages()
 	RenderPage(w, r, "thingDetails.gohtml", data)
 }
 
@@ -450,11 +454,11 @@ func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 
 	format := r.FormValue("format")
 
-	var metadata = thing.FileMetadataStatic
+	staticMeta := thing.Static
 
 	switch format {
 	case "edit":
-		metadata = thing.FileMetadataStatic
+		staticMeta = thing.Static
 
 	default:
 		RenderError(w, r, "Invalid or unknown format")
@@ -464,11 +468,11 @@ func RouteThingEditMetadata(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Title    string
 		Thing    *Thing
-		Metadata FileMetadataStatic
+		Metadata metadata.Static
 	}{
 		Title:    thing.Title,
 		Thing:    thing,
-		Metadata: metadata,
+		Metadata: staticMeta,
 	}
 
 	RenderPage(w, r, "thingEditMetadata.gohtml", data)
@@ -849,7 +853,7 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reader, closers, err := thing.getFileReader(vFile)
+	reader, closers, err := thing.Open(vFile)
 	if err != nil {
 		RenderError(w, r, err.Error())
 		return
@@ -930,12 +934,12 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 		switch fAction {
 		case "reindex":
 			w.Header().Set("Content-Type", "application/json")
-			if reindexJob.Running {
-				json.NewEncoder(w).Encode(reindexJob)
+			if cat.Reindex.Running() {
+				json.NewEncoder(w).Encode(cat.Reindex.Status())
 				return
 			}
 
-			err = reindexJob.Start()
+			err = cat.Reindex.Start()
 			if err != nil {
 				json.NewEncoder(w).Encode(JsonError{err.Error()})
 				return
@@ -946,22 +950,20 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case "cancelReindex":
-			reindexJob.RequestCancel = true
+			cat.Reindex.Cancel()
 
 			http.Redirect(w, r, "/system?action=reindexStatus", http.StatusFound)
 			return
 
 		case "reload":
 			w.Header().Set("Content-Type", "application/json")
-			prev := len(filePointers.List)
-			err = InitializeFilePointers()
+			prev, count, err := cat.Reload()
 			if err != nil {
 				w.WriteHeader(500)
 				json.NewEncoder(w).Encode(JsonError{err.Error()})
 				return
 			}
 
-			count := len(filePointers.List)
 			json.NewEncoder(w).Encode(JsonResponse{fmt.Sprintf("%d files found (previously %d files)", count, prev)})
 			return
 		}
@@ -977,16 +979,16 @@ func RouteSystem(w http.ResponseWriter, r *http.Request) {
 	switch fAction {
 	case "reindexStatus":
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(reindexJob)
+		json.NewEncoder(w).Encode(cat.Reindex.Status())
 		return
 	}
 
 	data := struct {
 		Title   string
-		Reindex ReindexJob
+		Reindex catalog.ReindexStatus
 	}{
 		Title:   "System",
-		Reindex: reindexJob,
+		Reindex: cat.Reindex.Status(),
 	}
 
 	RenderPage(w, r, "system.gohtml", data)
@@ -1000,15 +1002,16 @@ func RouteSystemReindexStatus(w http.ResponseWriter, r *http.Request) {
 		Message string `json:"Message,omitempty"`
 	}{}
 
-	if notLoggedIn || len(reindexJob.Log) == 0 {
+	status := cat.Reindex.Status()
+	if notLoggedIn || len(status.Log) == 0 {
 		data.Stop = true
 	} else {
-		dtLimit := reindexJob.FinishTime.Add(time.Second * 30)
+		dtLimit := status.FinishTime.Add(time.Second * 30)
 
-		if !reindexJob.Running && time.Now().After(dtLimit) {
+		if !status.Running && time.Now().After(dtLimit) {
 			data.Stop = true
 		} else {
-			data.Message = reindexJob.Log[len(reindexJob.Log)-1]
+			data.Message = status.Log[len(status.Log)-1]
 		}
 	}
 

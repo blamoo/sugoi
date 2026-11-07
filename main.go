@@ -18,16 +18,15 @@ import (
 	"golang.org/x/term"
 
 	"github.com/blamoo/sugoi/internal/search"
+
+	"github.com/blamoo/sugoi/internal/catalog"
 )
 
 //go:generate go run cmd/static/main.go
 
 var configPath string
-var filePointers *library.Library
-var bleveIndex *search.Index
-var autocompleter *search.Autocompleter
+var cat *catalog.Catalog
 var httproot string
-var reindexJob ReindexJob
 
 func main() {
 	var err error
@@ -52,23 +51,24 @@ func main() {
 
 	InitializeSession()
 
-	err = InitializeFilePointers()
+	lib, err := library.Load(&config)
 	if err != nil {
 		slog.Error("loading the file list", "err", err)
 		os.Exit(5)
 	}
-	slog.Info("file list loaded", "files", len(filePointers.List))
+	slog.Info("file list loaded", "files", len(lib.List))
 
-	bleveIndex, err = search.Open(config.DatabaseDir)
+	index, err := search.Open(config.DatabaseDir)
 	if err != nil {
 		slog.Error("opening the search index", "err", err)
 		os.Exit(8)
 	}
 
+	cat = catalog.New(&config, lib, index)
+
 	InitializeOrder()
 
-	autocompleter = search.NewAutocompleter(bleveIndex)
-	err = autocompleter.Rebuild()
+	err = cat.Autocomplete.Rebuild()
 	if err != nil {
 		slog.Error("building autocomplete", "err", err)
 	}
@@ -142,20 +142,15 @@ func Shutdown(server *http.Server) {
 		slog.Warn("some requests didn't finish in time", "err", err)
 	}
 
-	if reindexJob.Running {
+	if cat.Reindex.Running() {
 		slog.Warn("cancelling the running reindex; the index will be incomplete until a new reindex")
-		reindexJob.RequestCancel = true
-
-		deadline := time.Now().Add(shutdownReindexTimeout)
-		for reindexJob.Running && time.Now().Before(deadline) {
-			time.Sleep(100 * time.Millisecond)
-		}
-		if reindexJob.Running {
+		cat.Reindex.Cancel()
+		if !cat.Reindex.Wait(shutdownReindexTimeout) {
 			slog.Warn("reindex didn't stop in time")
 		}
 	}
 
-	err = bleveIndex.Close()
+	err = cat.Index.Close()
 	if err != nil {
 		slog.Error("closing the search index", "err", err)
 	}

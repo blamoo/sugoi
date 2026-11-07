@@ -14,5 +14,5 @@ func RouteAutocomplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(autocompleter.Suggest(r.FormValue("q"), !reindexJob.Running))
+	json.NewEncoder(w).Encode(cat.Autocomplete.Suggest(r.FormValue("q"), !cat.Reindex.Running()))
 }

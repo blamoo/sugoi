@@ -1,4 +1,4 @@
-package main
+package catalog
 
 import (
 	"errors"
@@ -7,13 +7,61 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/blevesearch/bleve/v2"
+
+	"github.com/blamoo/sugoi/internal/config"
+	"github.com/blamoo/sugoi/internal/library"
 	"github.com/blamoo/sugoi/internal/metadata"
+	"github.com/blamoo/sugoi/internal/search"
 )
 
 const testKey = "{{LIB}}/collection/[Artist] Some Title.cbz"
 
+// newTestCatalog builds a catalog over a temporary database and an in-memory
+// index, with the given files.txt lines.
+func newTestCatalog(t *testing.T, keys ...string) *Catalog {
+	t.Helper()
+
+	dir := t.TempDir()
+	cfg := &config.Config{
+		DatabaseDir: dir,
+		CacheDir:    t.TempDir(),
+		DirVars:     map[string]string{"LIB": dir + "/library"},
+	}
+
+	index, err := search.OpenMem()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { index.Close() })
+
+	return New(cfg, library.New(cfg, keys), index)
+}
+
+func (c *Catalog) mustGet(t *testing.T, key string) *Thing {
+	t.Helper()
+	thing, err := c.Get(library.NewFile(c.cfg, key).Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return thing
+}
+
+func (c *Catalog) searchCount(t *testing.T, q string) uint64 {
+	t.Helper()
+	parsed, err := bleve.NewQueryStringQuery(q).Parse()
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := c.Index.Search(bleve.NewSearchRequest(search.ShouldToMust(parsed)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return res.Total
+}
+
 func TestConcurrentMarksAreNotLost(t *testing.T) {
-	setupTestEnv(t, testKey)
+	c := newTestCatalog(t, testKey)
 
 	const n = 40
 	var wg sync.WaitGroup
@@ -23,7 +71,7 @@ func TestConcurrentMarksAreNotLost(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			// each request loads its own copy, like the HTTP handlers
-			errs <- mustThing(t, testKey).AddMark()
+			errs <- c.mustGet(t, testKey).AddMark()
 		}()
 	}
 	wg.Wait()
@@ -35,15 +83,15 @@ func TestConcurrentMarksAreNotLost(t *testing.T) {
 		}
 	}
 
-	if got := mustThing(t, testKey).Marks; got != n {
+	if got := c.mustGet(t, testKey).Marks; got != n {
 		t.Fatalf("marks = %d, want %d", got, n)
 	}
 }
 
 func TestRatingToggle(t *testing.T) {
-	setupTestEnv(t, testKey)
+	c := newTestCatalog(t, testKey)
 
-	thing := mustThing(t, testKey)
+	thing := c.mustGet(t, testKey)
 	if err := thing.TrySaveRating(4, true); err != nil {
 		t.Fatal(err)
 	}
@@ -52,28 +100,28 @@ func TestRatingToggle(t *testing.T) {
 	}
 
 	// toggling the same rating clears it, based on what is on disk
-	if err := mustThing(t, testKey).TrySaveRating(4, true); err != nil {
+	if err := c.mustGet(t, testKey).TrySaveRating(4, true); err != nil {
 		t.Fatal(err)
 	}
-	if got := mustThing(t, testKey).Rating; got != 0 {
+	if got := c.mustGet(t, testKey).Rating; got != 0 {
 		t.Fatalf("rating = %d, want 0 after toggle", got)
 	}
 
 	// mutations update the search index
-	if err := mustThing(t, testKey).TrySaveRating(5, false); err != nil {
+	if err := c.mustGet(t, testKey).TrySaveRating(5, false); err != nil {
 		t.Fatal(err)
 	}
-	if ids := searchIDs(t, "rating:5"); len(ids) != 1 {
-		t.Fatalf("rating:5 matched %v", ids)
+	if n := c.searchCount(t, "rating:5"); n != 1 {
+		t.Fatalf("rating:5 matched %d", n)
 	}
 }
 
 func TestWritesRefusedDuringReindex(t *testing.T) {
-	setupTestEnv(t, testKey)
-	thing := mustThing(t, testKey)
+	c := newTestCatalog(t, testKey)
+	thing := c.mustGet(t, testKey)
 
-	reindexJob.Running = true
-	defer func() { reindexJob.Running = false }()
+	c.Reindex.update(func(s *ReindexStatus) { s.Running = true })
+	defer c.Reindex.update(func(s *ReindexStatus) { s.Running = false })
 
 	if err := thing.AddMark(); !errors.Is(err, ErrReindexRunning) {
 		t.Errorf("AddMark: err = %v, want ErrReindexRunning", err)
@@ -91,8 +139,8 @@ func TestWritesRefusedDuringReindex(t *testing.T) {
 }
 
 func TestSaveStaticFromFormKeepsImportedFields(t *testing.T) {
-	setupTestEnv(t, testKey)
-	thing := mustThing(t, testKey)
+	c := newTestCatalog(t, testKey)
+	thing := c.mustGet(t, testKey)
 
 	// as written by the importer: id_source is an array
 	imported := `{"id":[1970],"id_source":["/item/1970/abc"],"circle":["Circle"],"title":"Old","pages":18}`
@@ -103,7 +151,7 @@ func TestSaveStaticFromFormKeepsImportedFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := mustThing(t, testKey).SaveStaticFromForm(url.Values{"title": {"New"}}); err != nil {
+	if err := c.mustGet(t, testKey).SaveStaticFromForm(url.Values{"title": {"New"}}); err != nil {
 		t.Fatal(err)
 	}
 

@@ -2,190 +2,35 @@ package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html"
 	"html/template"
-	"io"
-	"log/slog"
 	"net/url"
 	"path/filepath"
 	"slices"
 	"strings"
-	"time"
-
-	"github.com/blamoo/sugoi/internal/metadata"
-
-	"github.com/blamoo/sugoi/internal/fsutil"
 
 	"github.com/blamoo/sugoi/internal/search"
+
+	"github.com/blamoo/sugoi/internal/catalog"
 )
 
+// Thing adds the HTML/URL helpers used by the templates to a catalog item.
 type Thing struct {
-	File *FilePointer
-	FileMetadataDynamic
-	FileMetadataStatic
+	*catalog.Thing
 }
 
 func NewThingFromHash(hash string) (*Thing, error) {
-	file, err := filePointers.Find(hash)
+	t, err := cat.Get(hash)
 	if err != nil {
 		return nil, err
 	}
-
-	ret := Thing{}
-	ret.File = file
-
-	static, err := metadata.ReadStatic(file.StaticMetaPath())
-	if err != nil {
-		slog.Error("reading static metadata", "file", file.StaticMetaPath(), "err", err)
-		ret.FileMetadataStatic = FileMetadataStatic{}
-	} else {
-		ret.FileMetadataStatic = *static
-	}
-	fillStaticPlaceholders(&ret.FileMetadataStatic, file)
-
-	dynamic, err := metadata.ReadDynamic(file.DynamicMetaPath())
-	if err != nil {
-		slog.Error("reading dynamic metadata", "file", file.DynamicMetaPath(), "err", err)
-		ret.FileMetadataDynamic = FileMetadataDynamic{}
-	} else {
-		ret.FileMetadataDynamic = *dynamic
-	}
-
-	return &ret, nil
+	return &Thing{t}, nil
 }
 
-func (t *Thing) FillEmptyFields(file *FilePointer) {
-	if len(t.Title) == 0 {
-		t.Title = file.PlaceholderTitle()
-	}
-
-	if len(t.Collection) == 0 {
-		t.Collection = file.PlaceholderCollection()
-	}
-
-	// if len(this.Cover) == 0 {
-	// 	this.Cover = config.DefaultCoverFileName
-	// }
-}
-
-func (t *Thing) Key() string {
-	return t.File.Key
-}
-
-func (t *Thing) Hash() string {
-	return t.File.Hash
-}
-
-// updateDynamic reloads dynamic.json from disk under the item's lock, applies
-// fn and saves, so concurrent requests (two tabs, rating + mark) don't
-// overwrite each other's changes.
-// ErrReindexRunning is returned by metadata writes while a full reindex runs:
-// the reindex may have already queued an older copy of the item, which would
-// overwrite the new one in the index (the file on disk would stay correct).
-var ErrReindexRunning = errors.New("a full reindex is running, try again when it finishes")
-
-func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
-	t.File.Lock()
-	defer t.File.Unlock()
-
-	if reindexJob.Running {
-		return ErrReindexRunning
-	}
-
-	current, err := metadata.ReadDynamic(t.File.DynamicMetaPath())
-	if err != nil {
-		return err
-	}
-	err = fn(current)
-	if err != nil {
-		return err
-	}
-
-	err = metadata.Write(t.File.DynamicMetaPath(), current)
-	if err != nil {
-		return err
-	}
-
-	t.FileMetadataDynamic = *current
-	return reindexFile(t.File)
-}
-
-// SaveStaticFromForm applies the edit form onto the static.json stored on disk
-// (not the in-memory copy, which has placeholder title/pages filled in).
-func (t *Thing) SaveStaticFromForm(form url.Values) error {
-	t.File.Lock()
-	defer t.File.Unlock()
-
-	if reindexJob.Running {
-		return ErrReindexRunning
-	}
-
-	current, err := metadata.ReadStatic(t.File.StaticMetaPath())
-	if err != nil {
-		return err
-	}
-
-	err = current.ApplyForm(form)
-	if err != nil {
-		return err
-	}
-
-	err = metadata.Write(t.File.StaticMetaPath(), current)
-	if err != nil {
-		return err
-	}
-
-	t.FileMetadataStatic = *current
-	fillStaticPlaceholders(&t.FileMetadataStatic, t.File)
-	return reindexFile(t.File)
-}
-
-// TrySaveRating sets the rating; with toggle, setting the current rating again
-// clears it.
-func (t *Thing) TrySaveRating(rating int, toggle bool) error {
-	return t.updateDynamic(func(d *FileMetadataDynamic) error {
-		if toggle && d.Rating == rating {
-			rating = 0
-		}
-		d.Rating = rating
-		d.UpdatedAt = time.Now()
-		return nil
-	})
-}
-
-func (t *Thing) AddMark() error {
-	return t.updateDynamic(func(d *FileMetadataDynamic) error {
-		d.Marks++
-		return nil
-	})
-}
-
-func (t *Thing) PushRead() error {
-	return t.updateDynamic(func(d *FileMetadataDynamic) error {
-		d.ReadCount++
-
-		now := time.Now()
-		if d.FirstReadAt.IsZero() {
-			d.FirstReadAt = now
-		}
-		d.LastReadAt = now
-		return nil
-	})
-}
-
-func (t *Thing) SubMark() error {
-	return t.updateDynamic(func(d *FileMetadataDynamic) error {
-		d.Marks--
-		return nil
-	})
-}
-
+// TrySaveCover sets the cover from a page URL (as listed by ListFiles).
 func (t *Thing) TrySaveCover(file string, isUpdate bool) error {
-	prefix := t.FileUrlPrefix()
-	realLocation := t.File.RealLocation()
-	newCover, _ := filepath.Rel(prefix, file)
+	newCover, _ := filepath.Rel(t.FileUrlPrefix(), file)
 
 	files, err := t.ListFiles()
 	if err != nil {
@@ -193,16 +38,10 @@ func (t *Thing) TrySaveCover(file string, isUpdate bool) error {
 	}
 
 	if !slices.Contains(files, file) {
-		return fmt.Errorf("file %s doesn't exists in %s", newCover, realLocation)
+		return fmt.Errorf("file %s doesn't exists in %s", newCover, t.File.RealLocation())
 	}
 
-	return t.updateDynamic(func(d *FileMetadataDynamic) error {
-		d.Cover = newCover
-		if isUpdate {
-			d.UpdatedAt = time.Now()
-		}
-		return nil
-	})
+	return t.SetCover(newCover, isUpdate)
 }
 
 func (t *Thing) CoverImageUrl() string {
@@ -210,7 +49,7 @@ func (t *Thing) CoverImageUrl() string {
 		return t.Cover
 	}
 
-	f, err := t.ListFilesRaw()
+	f, err := t.Pages()
 	if err != nil || len(f) == 0 {
 		return "/static/empty.jpg"
 	}
@@ -219,7 +58,6 @@ func (t *Thing) CoverImageUrl() string {
 		return "/static/empty.jpg"
 	}
 
-	t.TrySaveCover(f[t.Thumbnail], false)
 	return f[t.Thumbnail]
 }
 
@@ -405,7 +243,7 @@ func (t *Thing) EmptyStarsRepeat(str string) string {
 }
 
 func (t *Thing) ListFiles() ([]string, error) {
-	raw, err := t.ListFilesRaw()
+	raw, err := t.Pages()
 	if err != nil {
 		return nil, err
 	}
@@ -414,18 +252,6 @@ func (t *Thing) ListFiles() ([]string, error) {
 		ret[key] = t.FileUrl(val)
 	}
 	return ret, nil
-}
-
-func (t *Thing) ListFilesRaw() ([]string, error) {
-	if len(t.FileMetadataStatic.Files) > 0 {
-		return t.FileMetadataStatic.Files, nil
-	}
-
-	return filePointers.Pages(t.File)
-}
-
-func (t *Thing) getFileReader(file string) (io.Reader, fsutil.MultiCloser, error) {
-	return filePointers.Open(t.File, file)
 }
 
 func (t *Thing) SeriesUrls() map[string]string {
