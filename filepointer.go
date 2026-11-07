@@ -1,162 +1,32 @@
 package main
 
 import (
-	"bufio"
-	"crypto/sha1"
-	"fmt"
-	"io"
 	"math/rand/v2"
-	"os"
-	"path"
-	"regexp"
 	"strconv"
-	"strings"
-	"sync"
 
 	"github.com/blevesearch/bleve/v2"
 
+	"github.com/blamoo/sugoi/internal/library"
 	"github.com/blamoo/sugoi/internal/metadata"
 )
 
-type FilePointerList struct {
-	List   []*FilePointer
-	ByHash map[string]*FilePointer
-}
+// Temporary alias while the code moves into internal packages.
+type FilePointer = library.File
 
-func NewFilePointerList() FilePointerList {
-	return FilePointerList{
-		List:   make([]*FilePointer, 0),
-		ByHash: make(map[string]*FilePointer),
-	}
-}
-
-func (fpl *FilePointerList) Clear() {
-	fpl.List = make([]*FilePointer, 0)
-	fpl.ByHash = make(map[string]*FilePointer)
-}
-
-func (fpl *FilePointerList) Push(n *FilePointer) {
-	fpl.List = append(fpl.List, n)
-	fpl.ByHash[n.Hash] = n
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-type FilePointer struct {
-	mu       sync.Mutex // guards read-modify-write of this item's metadata files
-	Key      string
-	Hash     string
-	PathKey  string
-	MetaPath string
-}
-
-func NewFilePointer(key string) (*FilePointer, error) {
-	ret := FilePointer{}
-
-	byteKey := []byte(key)
-	byteHash := sha1.Sum(byteKey)
-
-	ret.Key = key
-	ret.Hash = fmt.Sprintf("%x", byteHash)
-	ret.PathKey = ret.BuildPathKey()
-	ret.MetaPath = path.Join(config.DatabaseDir, "meta", ret.PathKey)
-
-	return &ret, nil
-}
-
-var pathKeyDirVarRe = regexp.MustCompile(`{{.*?}}`)
-
-func (fp *FilePointer) BuildPathKey() string {
-	p := fp.Key
-
-	p = pathKeyDirVarRe.ReplaceAllStringFunc(p, func(s string) string {
-		s = strings.Replace(s, "{{", "", -1)
-		s = strings.Replace(s, "}}", "", -1)
-		return strings.ToLower(s)
-	})
-
-	return path.Clean(p)
-}
-
-func (fp *FilePointer) RealLocation() string {
-	p := fp.Key
-	for key, val := range config.DirVars {
-		p = strings.ReplaceAll(p, fmt.Sprintf("{{%s}}", key), val)
-	}
-	return path.Clean(p)
-}
-
-func (fp *FilePointer) StaticMetaPath() string {
-	return path.Join(fp.MetaPath, "static.json")
-}
-
-func (fp *FilePointer) DynamicMetaPath() string {
-	return path.Join(fp.MetaPath, "dynamic.json")
-}
-
-func (fp *FilePointer) PlaceholderCollection() string {
-	dir := path.Dir(fp.PathKey)
-	return path.Base(dir)
-}
-
-var fixName = regexp.MustCompile(`^(\[.*?\] )?(.*?)( \(.*?\))?$`)
-
-func (fp *FilePointer) PlaceholderTitle() string {
-	name := path.Base(fp.PathKey)
-	ext := path.Ext(name)
-	name, _ = strings.CutSuffix(name, ext)
-	name = fixName.ReplaceAllString(name, "$2")
-	return name
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+// InitializeFilePointers (re)loads files.txt. On error the current list is
+// kept.
 func InitializeFilePointers() error {
-	file, err := os.Open(path.Join(config.DatabaseDir, "files.txt"))
-
+	lib, err := library.Load(&config)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	r := bufio.NewReader(file)
-
-	filePointers = NewFilePointerList()
-
-	for {
-		line, err := r.ReadString('\n')
-		line = strings.TrimSpace(line)
-
-		if err == io.EOF && len(line) == 0 {
-			return nil
-		}
-
-		if err != nil && err != io.EOF {
-			filePointers.Clear()
-			return err
-		}
-
-		if len(line) == 0 {
-			continue
-		}
-
-		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") || strings.HasPrefix(line, ";") {
-			continue
-		}
-
-		n, err := NewFilePointer(line)
-
-		if err != nil {
-			filePointers.Clear()
-			return err
-		}
-
-		filePointers.Push(n)
-	}
+	filePointers = lib
+	return nil
 }
 
-func (fp *FilePointer) ReindexIntoBatch(idx *bleve.Batch) error {
-	doc := fp.BuildReindexDoc()
+func reindexFileIntoBatch(fp *FilePointer, idx *bleve.Batch) error {
+	doc := buildReindexDoc(fp)
 
 	err := idx.Index(fp.Hash, doc)
 	if err != nil {
@@ -166,8 +36,8 @@ func (fp *FilePointer) ReindexIntoBatch(idx *bleve.Batch) error {
 	return nil
 }
 
-func (fp *FilePointer) Reindex() error {
-	doc := fp.BuildReindexDoc()
+func reindexFile(fp *FilePointer) error {
+	doc := buildReindexDoc(fp)
 
 	err := bleveIndex.Index(fp.Hash, doc)
 	if err != nil {
@@ -178,7 +48,7 @@ func (fp *FilePointer) Reindex() error {
 	return nil
 }
 
-func (fp *FilePointer) BuildReindexDoc() FileMetadata {
+func buildReindexDoc(fp *FilePointer) FileMetadata {
 	var err error
 	var file FileMetadata
 	static, err := metadata.ReadStatic(fp.StaticMetaPath())

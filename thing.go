@@ -2,24 +2,17 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"html"
 	"html/template"
 	"io"
-	"io/fs"
 	"log/slog"
 	"net/url"
-	"os"
-	"path"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
-
-	"github.com/facette/natsort"
-	"github.com/mholt/archives"
 
 	"github.com/blamoo/sugoi/internal/metadata"
 
@@ -33,15 +26,14 @@ type Thing struct {
 }
 
 func NewThingFromHash(hash string) (*Thing, error) {
-	file, found := filePointers.ByHash[hash]
-	if !found {
-		return nil, fmt.Errorf("file %s not found", hash)
+	file, err := filePointers.Find(hash)
+	if err != nil {
+		return nil, err
 	}
 
 	ret := Thing{}
 	ret.File = file
 
-	var err error
 	static, err := metadata.ReadStatic(file.StaticMetaPath())
 	if err != nil {
 		slog.Error("reading static metadata", "file", file.StaticMetaPath(), "err", err)
@@ -93,8 +85,8 @@ func (t *Thing) Hash() string {
 var ErrReindexRunning = errors.New("a full reindex is running, try again when it finishes")
 
 func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
-	t.File.mu.Lock()
-	defer t.File.mu.Unlock()
+	t.File.Lock()
+	defer t.File.Unlock()
 
 	if reindexJob.Running {
 		return ErrReindexRunning
@@ -115,14 +107,14 @@ func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
 	}
 
 	t.FileMetadataDynamic = *current
-	return t.File.Reindex()
+	return reindexFile(t.File)
 }
 
 // SaveStaticFromForm applies the edit form onto the static.json stored on disk
 // (not the in-memory copy, which has placeholder title/pages filled in).
 func (t *Thing) SaveStaticFromForm(form url.Values) error {
-	t.File.mu.Lock()
-	defer t.File.mu.Unlock()
+	t.File.Lock()
+	defer t.File.Unlock()
 
 	if reindexJob.Running {
 		return ErrReindexRunning
@@ -145,7 +137,7 @@ func (t *Thing) SaveStaticFromForm(form url.Values) error {
 
 	t.FileMetadataStatic = *current
 	fillStaticPlaceholders(&t.FileMetadataStatic, t.File)
-	return t.File.Reindex()
+	return reindexFile(t.File)
 }
 
 // TrySaveRating sets the rating; with toggle, setting the current rating again
@@ -427,114 +419,11 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 		return t.FileMetadataStatic.Files, nil
 	}
 
-	var files []string
-
-	fname := config.CacheFile("thing/file", t.Hash(), ".files")
-	os.MkdirAll(path.Dir(fname), 0755)
-
-	f, err := os.Open(fname)
-
-	if err == nil {
-		defer f.Close()
-
-		b, readErr := io.ReadAll(f)
-		if readErr == nil {
-			split := strings.SplitSeq(string(b), "\n")
-
-			for line := range split {
-				line = strings.TrimSpace(line)
-				if len(line) == 0 {
-					continue
-				}
-				files = append(files, line)
-			}
-		}
-		return files, nil
-	}
-
-	if !os.IsNotExist(err) {
-		return nil, err
-	}
-	slog.Debug("file list cache miss", "file", fname)
-
-	compressedFileName := t.File.RealLocation()
-
-	fsys, err := archives.FileSystem(context.Background(), compressedFileName, nil)
-
-	if err != nil {
-		return nil, err
-	}
-
-	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if d.IsDir() {
-			return nil
-		}
-
-		if !isImageFile(path) {
-			return nil
-		}
-
-		files = append(files, path)
-		return nil
-	})
-
-	natsort.Sort(files)
-	// sort.Strings(files)
-
-	if len(files) > 0 {
-		filesJoin := strings.Join(files, "\n")
-		err := fsutil.WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
-			_, err := io.WriteString(w, filesJoin)
-			return err
-		})
-		if err != nil {
-			slog.Warn("caching file list", "file", fname, "err", err)
-		} else {
-			slog.Debug("file list cached", "file", fname, "bytes", len(filesJoin))
-		}
-	} else {
-		slog.Debug("not caching empty file list", "file", fname)
-	}
-
-	return files, nil
-}
-
-// imageExtensions are the archive entries shown as pages.
-// #TODO move this list of extensions to config file
-var imageExtensions = []string{".png", ".jpg", ".jpeg", ".webp"}
-
-// isImageFile matches the extension case-insensitively: many archives use
-// names like 001.JPG.
-func isImageFile(name string) bool {
-	return slices.Contains(imageExtensions, strings.ToLower(filepath.Ext(name)))
+	return filePointers.Pages(t.File)
 }
 
 func (t *Thing) getFileReader(file string) (io.Reader, fsutil.MultiCloser, error) {
-	var closers fsutil.MultiCloser
-
-	if len(file) > 0 && file[len(file)-1] != '/' {
-		compressedFileName := path.Clean(path.Join(t.File.RealLocation()))
-
-		fsys, err := archives.FileSystem(context.Background(), compressedFileName, nil)
-		if err != nil {
-			return nil, closers, err
-		}
-
-		ret, err := fsys.Open(file)
-
-		if err != nil {
-			return nil, closers, fmt.Errorf("couldn't read file %s from %s", file, compressedFileName)
-		}
-		closers = append(closers, ret)
-
-		return ret, closers, nil
-	}
-
-	return nil, closers, fmt.Errorf("invalid file: %s", file)
+	return filePointers.Open(t.File, file)
 }
 
 func (t *Thing) SeriesUrls() map[string]string {

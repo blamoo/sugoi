@@ -50,14 +50,9 @@ func fillStaticPlaceholders(fms *FileMetadataStatic, file *FilePointer) {
 	}
 
 	if fms.Pages == 0 {
-		p, ok := filePointers.ByHash[file.Hash]
-
-		if ok {
-			t := Thing{File: p}
-			f, err := t.ListFilesRaw()
-			if err == nil {
-				fms.Pages = len(f)
-			}
+		f, err := filePointers.Pages(file)
+		if err == nil {
+			fms.Pages = len(f)
 		}
 	}
 }

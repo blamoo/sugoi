@@ -57,7 +57,7 @@ func (job *ReindexJob) Start() error {
 			thing, _ := NewThingFromHash(file.Hash)
 			thing.ListFilesRaw()
 
-			err = file.ReindexIntoBatch(batch)
+			err = reindexFileIntoBatch(file, batch)
 			if err != nil {
 				job.Error++
 				job.Processed++

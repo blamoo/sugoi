@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
+
+	"github.com/blamoo/sugoi/internal/library"
 	"github.com/gorilla/mux"
 
 	"golang.org/x/term"
@@ -21,7 +23,7 @@ import (
 //go:generate go run cmd/static/main.go
 
 var configPath string
-var filePointers FilePointerList
+var filePointers *library.Library
 var bleveIndex bleve.Index
 var httproot string
 var reindexJob ReindexJob

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/blevesearch/bleve/v2"
+
+	"github.com/blamoo/sugoi/internal/library"
 )
 
 // setupTestEnv points the package globals (config, file list, search index)
@@ -34,21 +36,13 @@ func setupTestEnv(t *testing.T, keys ...string) {
 	}
 	bleveIndex = idx
 
-	filePointers = NewFilePointerList()
-	for _, k := range keys {
-		fp, err := NewFilePointer(k)
-		if err != nil {
-			t.Fatal(err)
-		}
-		filePointers.Push(fp)
-	}
+	filePointers = library.New(&config, keys)
 }
 
 // mustThing returns the item for a key registered by setupTestEnv.
 func mustThing(t *testing.T, key string) *Thing {
 	t.Helper()
-	fp, _ := NewFilePointer(key)
-	thing, err := NewThingFromHash(fp.Hash)
+	thing, err := NewThingFromHash(library.NewFile(&config, key).Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
