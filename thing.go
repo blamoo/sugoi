@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"html/template"
@@ -84,9 +85,18 @@ func (t *Thing) Hash() string {
 // updateDynamic reloads dynamic.json from disk under the item's lock, applies
 // fn and saves, so concurrent requests (two tabs, rating + mark) don't
 // overwrite each other's changes.
+// ErrReindexRunning is returned by metadata writes while a full reindex runs:
+// the reindex may have already queued an older copy of the item, which would
+// overwrite the new one in the index (the file on disk would stay correct).
+var ErrReindexRunning = errors.New("a full reindex is running, try again when it finishes")
+
 func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
 	t.File.mu.Lock()
 	defer t.File.mu.Unlock()
+
+	if reindexJob.Running {
+		return ErrReindexRunning
+	}
 
 	current, err := NewFileMetadataDynamicFromFile(t.File.DynamicMetaPath())
 	if err != nil {
@@ -113,6 +123,10 @@ func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
 func (t *Thing) SaveStaticFromForm(form url.Values) error {
 	t.File.mu.Lock()
 	defer t.File.mu.Unlock()
+
+	if reindexJob.Running {
+		return ErrReindexRunning
+	}
 
 	current, err := NewFileMetadataStaticFromFile(t.File.StaticMetaPath())
 	if err != nil {
