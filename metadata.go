@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"time"
@@ -80,7 +80,7 @@ func CreateMetadataEmptyFile(file string) error {
 		return err
 	}
 
-	log.Printf("Created empty metadata file %s\n", file)
+	slog.Info("created empty metadata file", "file", file)
 	return nil
 }
 
@@ -232,7 +232,6 @@ func (fms *FileMetadataStatic) FillEmptyFields(file *FilePointer) {
 			t := Thing{File: p}
 			f, err := t.ListFilesRaw()
 			if err == nil {
-				// log.Printf("Dynamic page count for %s\n", file.Key)
 				fms.Pages = len(f)
 			}
 		}

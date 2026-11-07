@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"sort"
 	"strconv"
@@ -134,7 +134,7 @@ func RebuildAutocomplete() error {
 	autocompleteMeta = meta
 	autocompleteMu.Unlock()
 
-	debugPrintf("Autocomplete: %d terms\n", len(terms))
+	slog.Debug("autocomplete rebuilt", "terms", len(terms), "metatags", len(meta))
 	return nil
 }
 
@@ -253,7 +253,7 @@ func RouteAutocomplete(w http.ResponseWriter, r *http.Request) {
 	if autocompleteDirty.Load() && !reindexJob.Running {
 		err := RebuildAutocomplete()
 		if err != nil {
-			log.Println("autocomplete rebuild:", err)
+			slog.Error("rebuilding autocomplete", "err", err)
 		}
 	}
 

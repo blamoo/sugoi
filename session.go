@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -36,7 +36,7 @@ func CheckAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
 	session, _ := sessionStore.Get(r, config.SessionCookieName)
 	err := session.Save(r, w)
 	if err != nil {
-		log.Println(err)
+		slog.Error("saving session", "err", err)
 	}
 
 	auth, ok1 := session.Values["authenticated"].(bool)

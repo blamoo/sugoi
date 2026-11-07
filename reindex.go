@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"time"
@@ -93,7 +94,7 @@ func (job *ReindexJob) Start() error {
 
 		if config.Debug {
 			v, _ := bleveIndex.Fields()
-			fmt.Println(v)
+			slog.Debug("indexed fields", "fields", v)
 		}
 
 		MarkAutocompleteDirty()

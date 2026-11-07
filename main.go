@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -32,11 +33,14 @@ func main() {
 	user := flag.Bool("u", false, "Adds a new user or changes de password of an existing user on your config file.")
 	flag.Parse()
 
+	InitializeLogging()
+
 	err = InitializeConfig()
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("loading config", "path", configPath, "err", err)
 		os.Exit(1)
 	}
+	SetDebugLogging(config.Debug)
 
 	if user != nil && *user {
 		ManageUsers()
@@ -47,13 +51,14 @@ func main() {
 
 	err = InitializeFilePointers()
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("loading the file list", "err", err)
 		os.Exit(5)
 	}
+	slog.Info("file list loaded", "files", len(filePointers.List))
 
 	err = InitializeBleve()
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("opening the search index", "err", err)
 		os.Exit(8)
 	}
 
@@ -61,7 +66,7 @@ func main() {
 
 	err = RebuildAutocomplete()
 	if err != nil {
-		fmt.Println("autocomplete:", err)
+		slog.Error("building autocomplete", "err", err)
 	}
 
 	router := mux.NewRouter()
@@ -83,15 +88,13 @@ func main() {
 
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	fmt.Println("uwu")
-
 	if config.ServerPort == 80 {
 		httproot = fmt.Sprintf("http://%s/", config.ServerHost)
 	} else {
 		httproot = fmt.Sprintf("http://%s:%d/", config.ServerHost, config.ServerPort)
 	}
 
-	fmt.Printf("Listening on %s\n", httproot)
+	slog.Info("uwu, listening", "url", httproot)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", config.ServerHost, config.ServerPort),
@@ -109,7 +112,7 @@ func main() {
 	select {
 	case err = <-serveErr:
 		// Failed to start (port in use, permission denied...).
-		fmt.Println(err)
+		slog.Error("starting the server", "addr", server.Addr, "err", err)
 		os.Exit(4)
 
 	case <-ctx.Done():
@@ -117,7 +120,7 @@ func main() {
 		Shutdown(server)
 	}
 
-	fmt.Println("owo")
+	slog.Info("owo, stopped")
 }
 
 const shutdownRequestTimeout = 10 * time.Second
@@ -126,17 +129,17 @@ const shutdownReindexTimeout = 30 * time.Second
 // Shutdown stops accepting connections, waits for in-flight requests, stops a
 // running reindex and closes the search index so it's left consistent.
 func Shutdown(server *http.Server) {
-	fmt.Println("Shutting down...")
+	slog.Info("shutting down")
 
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownRequestTimeout)
 	defer cancel()
 	err := server.Shutdown(ctx)
 	if err != nil {
-		fmt.Println("Some requests didn't finish in time:", err)
+		slog.Warn("some requests didn't finish in time", "err", err)
 	}
 
 	if reindexJob.Running {
-		fmt.Println("Cancelling the running reindex; the index will be incomplete until a new reindex")
+		slog.Warn("cancelling the running reindex; the index will be incomplete until a new reindex")
 		reindexJob.RequestCancel = true
 
 		deadline := time.Now().Add(shutdownReindexTimeout)
@@ -144,13 +147,13 @@ func Shutdown(server *http.Server) {
 			time.Sleep(100 * time.Millisecond)
 		}
 		if reindexJob.Running {
-			fmt.Println("Reindex didn't stop in time")
+			slog.Warn("reindex didn't stop in time")
 		}
 	}
 
 	err = bleveIndex.Close()
 	if err != nil {
-		fmt.Println("Closing the index:", err)
+		slog.Error("closing the search index", "err", err)
 	}
 }
 

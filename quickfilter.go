@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -46,7 +46,7 @@ func (t QuickFilter) Url() string {
 
 	z, err := regexp.Compile(t.Remove)
 	if err != nil {
-		log.Println(err)
+		slog.Error("invalid quick filter Remove regexp", "label", t.Label, "regexp", t.Remove, "err", err)
 	} else {
 		q = z.ReplaceAllString(q, "")
 	}

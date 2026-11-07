@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
@@ -44,7 +45,7 @@ func parseTemplates() (*template.Template, error) {
 		return nil, err
 	}
 
-	debugPrintf("%s\n", tmpl.DefinedTemplates())
+	slog.Debug("templates parsed", "templates", tmpl.DefinedTemplates())
 	return tmpl, nil
 }
 
@@ -113,7 +114,7 @@ func RenderError(w http.ResponseWriter, r *http.Request, message string) {
 
 	data.Error = message
 	data.Title = "Error"
-	debugPrintf("%s\n", message)
+	slog.Debug("error page", "path", r.URL.Path, "message", message)
 	w.Header().Set("Content-Type", "text/html")
 	// Some callers set long-lived cache headers before failing; never let an
 	// error page be cached in place of the real resource.

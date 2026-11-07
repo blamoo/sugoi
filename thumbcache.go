@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -18,12 +19,12 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 	f, err := os.Open(fname)
 
 	if os.IsNotExist(err) {
-		debugPrintf("Cache miss: %s\n", fname)
+		slog.Debug("thumbnail cache miss", "file", fname)
 		return false
 	}
 
 	if err != nil {
-		debugPrintf("Cache read error: %s (%s)\n", fname, err)
+		slog.Warn("thumbnail cache read", "file", fname, "err", err)
 		return false
 	}
 	defer f.Close()
@@ -33,12 +34,12 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 
 	_, err = io.Copy(w, f)
 	if err != nil {
-		debugPrintf("Cache send error: %s (%s)\n", fname, err)
+		slog.Debug("thumbnail cache send", "file", fname, "err", err)
 		return false
 
 	}
 
-	debugPrintf("Cache hit: %s\n", fname)
+	slog.Debug("thumbnail cache hit", "file", fname)
 	return true
 }
 
@@ -52,9 +53,9 @@ func ThumbCacheWrite(hash string, file string, data []byte) {
 		return err
 	})
 	if err != nil {
-		debugPrintf("Cache write error: %s (%s)\n", fname, err)
+		slog.Warn("thumbnail cache write", "file", fname, "err", err)
 		return
 	}
 
-	debugPrintf("Cached: %s\n", fname)
+	slog.Debug("thumbnail cached", "file", fname)
 }

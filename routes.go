@@ -8,9 +8,9 @@ import (
 	"image/draw"
 	"image/jpeg"
 	_ "image/png"
+	"log/slog"
 
 	"io"
-	"log"
 	"math"
 	"math/rand/v2"
 	"mime"
@@ -354,7 +354,7 @@ func RouteLogin(w http.ResponseWriter, r *http.Request) {
 		err := session.Save(r, w)
 
 		if err != nil {
-			log.Println(err)
+			slog.Error("saving session", "err", err)
 		}
 
 		returnPage := r.FormValue("return")
@@ -377,7 +377,7 @@ func RouteLogout(w http.ResponseWriter, r *http.Request) {
 		session.Values["user"] = nil
 		err := session.Save(r, w)
 		if err != nil {
-			log.Println(err)
+			slog.Error("saving session", "err", err)
 		}
 	}
 

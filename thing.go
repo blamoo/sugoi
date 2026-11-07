@@ -9,7 +9,7 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"path"
@@ -40,7 +40,7 @@ func NewThingFromHash(hash string) (*Thing, error) {
 	var err error
 	static, err := NewFileMetadataStaticFromFile(file.StaticMetaPath())
 	if err != nil {
-		log.Println(err)
+		slog.Error("reading static metadata", "file", file.StaticMetaPath(), "err", err)
 		ret.FileMetadataStatic = FileMetadataStatic{}
 	} else {
 		ret.FileMetadataStatic = *static
@@ -49,7 +49,7 @@ func NewThingFromHash(hash string) (*Thing, error) {
 
 	dynamic, err := NewFileMetadataDynamicFromFile(file.DynamicMetaPath())
 	if err != nil {
-		log.Println(err)
+		slog.Error("reading dynamic metadata", "file", file.DynamicMetaPath(), "err", err)
 		ret.FileMetadataDynamic = FileMetadataDynamic{}
 	} else {
 		ret.FileMetadataDynamic = *dynamic
@@ -454,7 +454,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 	if !os.IsNotExist(err) {
 		return nil, err
 	}
-	debugPrintf("File list cache miss: %s\n", fname)
+	slog.Debug("file list cache miss", "file", fname)
 
 	compressedFileName := t.File.RealLocation()
 
@@ -499,11 +499,13 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 			_, err := io.WriteString(w, filesJoin)
 			return err
 		})
-		if err == nil {
-			debugPrintf("File list cache write (%d bytes): %s\n", len(filesJoin), fname)
+		if err != nil {
+			slog.Warn("caching file list", "file", fname, "err", err)
+		} else {
+			slog.Debug("file list cached", "file", fname, "bytes", len(filesJoin))
 		}
 	} else {
-		debugPrintf("Not writing empty file list cache: %s\n", fname)
+		slog.Debug("not caching empty file list", "file", fname)
 	}
 
 	return files, nil
