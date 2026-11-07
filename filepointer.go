@@ -17,32 +17,24 @@ import (
 )
 
 type FilePointerList struct {
-	List      []*FilePointer
-	ByKey     map[string]*FilePointer
-	ByPathKey map[string]*FilePointer
-	ByHash    map[string]*FilePointer
+	List   []*FilePointer
+	ByHash map[string]*FilePointer
 }
 
 func NewFilePointerList() FilePointerList {
 	return FilePointerList{
-		List:      make([]*FilePointer, 0),
-		ByKey:     make(map[string]*FilePointer),
-		ByPathKey: make(map[string]*FilePointer),
-		ByHash:    make(map[string]*FilePointer),
+		List:   make([]*FilePointer, 0),
+		ByHash: make(map[string]*FilePointer),
 	}
 }
 
 func (fpl *FilePointerList) Clear() {
 	fpl.List = make([]*FilePointer, 0)
-	fpl.ByKey = make(map[string]*FilePointer)
-	fpl.ByPathKey = make(map[string]*FilePointer)
 	fpl.ByHash = make(map[string]*FilePointer)
 }
 
 func (fpl *FilePointerList) Push(n *FilePointer) {
 	fpl.List = append(fpl.List, n)
-	fpl.ByKey[n.Key] = n
-	fpl.ByPathKey[n.PathKey] = n
 	fpl.ByHash[n.Hash] = n
 }
 
