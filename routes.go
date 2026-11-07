@@ -125,6 +125,8 @@ func RouteRoot(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		parsed = shouldToMust(parsed)
+
 		r := strings.NewReplacer(
 			"+", "",
 			"\"", "",

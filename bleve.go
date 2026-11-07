@@ -10,6 +10,7 @@ import (
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
 	"github.com/blevesearch/bleve/v2/analysis/tokenizer/unicode"
 	"github.com/blevesearch/bleve/v2/mapping"
+	"github.com/blevesearch/bleve/v2/search/query"
 )
 
 var inQuotesReplacer *strings.Replacer
@@ -137,4 +138,23 @@ func BuildBleveSearchTermInt(key string, val string) string {
 	sb.WriteString(inQuotesReplacer.Replace(val))
 
 	return sb.String()
+}
+
+// shouldToMust makes unprefixed query-string terms required, so "A B" means
+// A AND B instead of Bleve's default (optional terms that only affect score).
+// Explicit "+" and "-" terms keep their meaning.
+func shouldToMust(q query.Query) query.Query {
+	bq, ok := q.(*query.BooleanQuery)
+	if !ok || bq.Should == nil {
+		return q
+	}
+
+	dq, ok := bq.Should.(*query.DisjunctionQuery)
+	if !ok {
+		return q
+	}
+
+	bq.AddMust(dq.Disjuncts...)
+	bq.Should = nil
+	return bq
 }

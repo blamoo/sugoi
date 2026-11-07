@@ -370,7 +370,7 @@ func (t *Thing) CollectionDetailsUrl() string {
 	u := new(url.URL)
 	u.Path = "/"
 	q := u.Query()
-	q.Set("q", BuildBleveSearchTerm("Collection", t.Collection))
+	q.Set("q", BuildBleveSearchTerm(searchField("collection"), t.Collection))
 	u.RawQuery = q.Encode()
 	return u.String()
 }
