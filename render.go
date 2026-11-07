@@ -49,10 +49,19 @@ func parseTemplates() (*template.Template, error) {
 }
 
 // getTemplates re-parses on every call in debug mode (edit templates without
-// restarting) and parses once otherwise.
+// restarting) and parses once otherwise. Either way the result is kept in
+// templateStore for currentTemplates.
 func getTemplates() (*template.Template, error) {
 	if config.Debug {
-		return parseTemplates()
+		tmpl, err := parseTemplates()
+		if err != nil {
+			return nil, err
+		}
+
+		templateMu.Lock()
+		templateStore = tmpl
+		templateMu.Unlock()
+		return tmpl, nil
 	}
 
 	templateMu.Lock()
@@ -67,6 +76,19 @@ func getTemplates() (*template.Template, error) {
 	}
 
 	return templateStore, nil
+}
+
+// currentTemplates returns the last parsed templates without re-parsing, for
+// partials rendered from inside a page (Thing.HtmlTable).
+func currentTemplates() (*template.Template, error) {
+	templateMu.Lock()
+	tmpl := templateStore
+	templateMu.Unlock()
+
+	if tmpl != nil {
+		return tmpl, nil
+	}
+	return getTemplates()
 }
 
 func RenderPage(w http.ResponseWriter, r *http.Request, name string, data any) {

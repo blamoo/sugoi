@@ -333,7 +333,12 @@ func (t *Thing) HtmlTable(options ...string) template.HTML {
 		data.NoMarks = true
 	}
 
-	err := templateStore.ExecuteTemplate(&b, "e_details_table.gohtml", data)
+	tmpl, err := currentTemplates()
+	if err != nil {
+		return template.HTML(err.Error())
+	}
+
+	err = tmpl.ExecuteTemplate(&b, "e_details_table.gohtml", data)
 	if err != nil {
 		return template.HTML(err.Error())
 	}
