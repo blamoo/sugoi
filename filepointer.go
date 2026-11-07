@@ -180,6 +180,7 @@ func (fp *FilePointer) Reindex() error {
 		return err
 	}
 
+	MarkAutocompleteDirty()
 	return nil
 }
 

@@ -96,6 +96,7 @@ func (job *ReindexJob) Start() error {
 			fmt.Println(v)
 		}
 
+		MarkAutocompleteDirty()
 		job.FinishTime = time.Now()
 		job.Running = false
 	}()

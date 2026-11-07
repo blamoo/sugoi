@@ -111,6 +111,22 @@ button.rateButton.active {
     color: black;
 }
 
+.bg-tag-series {
+    background-color: #f5a;
+    color: black;
+}
+
+.bg-tag-rating,
+.bg-tag-marks {
+    background-color: #6c757d;
+}
+
+.sugoi-autocomplete {
+    width: 100%;
+    max-height: 24rem;
+    overflow-y: auto;
+}
+
 .bg-tag-publisher {
     background-color: #ff0;
     color: black;

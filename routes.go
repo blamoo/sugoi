@@ -50,6 +50,7 @@ func Routes(router *mux.Router) {
 	router.HandleFunc("/system", RouteSystem)
 	router.HandleFunc("/system/reindexStatus", RouteSystemReindexStatus)
 	router.HandleFunc("/favicon.ico", RouteFavicon)
+	router.HandleFunc("/autocomplete.json", RouteAutocomplete)
 }
 
 func RouteRoot(w http.ResponseWriter, r *http.Request) {

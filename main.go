@@ -56,6 +56,11 @@ func main() {
 
 	InitializeOrder()
 
+	err = RebuildAutocomplete()
+	if err != nil {
+		fmt.Println("autocomplete:", err)
+	}
+
 	router := mux.NewRouter()
 
 	semaphore := make(chan struct{}, config.MaxConcurrency)
