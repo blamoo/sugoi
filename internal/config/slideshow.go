@@ -1,7 +1,8 @@
-package main
+package config
 
 import "fmt"
 
+// SlideshowPreset is one slideshow speed offered by the reader.
 type SlideshowPreset struct {
 	Seconds int
 	Default bool

@@ -1,4 +1,5 @@
-package main
+// Package fsutil has small filesystem helpers shared by the other packages.
+package fsutil
 
 import (
 	"encoding/json"
@@ -81,8 +82,8 @@ func syncDir(dir string) {
 	d.Close()
 }
 
-// writeJsonFile atomically writes v as tab-indented JSON.
-func writeJsonFile(file string, v any) error {
+// WriteJSON atomically and durably writes v as tab-indented JSON.
+func WriteJSON(file string, v any) error {
 	return WriteFileAtomic(file, 0644, true, func(w io.Writer) error {
 		e := json.NewEncoder(w)
 		e.SetIndent("", "\t")

@@ -21,12 +21,12 @@ func ParseQuickFilters(currentQs url.Values) []QuickFilter {
 	ret := []QuickFilter{}
 
 	for _, filter := range config.QuickFilters {
-		tmp := filter
-		tmp.CurrentQueryString = currentQs.Encode()
-
-		tmp.Label = filter.Label
-
-		ret = append(ret, tmp)
+		ret = append(ret, QuickFilter{
+			Label:              filter.Label,
+			Add:                filter.Add,
+			Remove:             filter.Remove,
+			CurrentQueryString: currentQs.Encode(),
+		})
 	}
 
 	return ret

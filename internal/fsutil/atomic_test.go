@@ -1,4 +1,4 @@
-package main
+package fsutil
 
 import (
 	"errors"
@@ -88,19 +88,19 @@ func TestWriteFileAtomicKeepsOldContentOnError(t *testing.T) {
 	}
 }
 
-func TestWriteJsonFile(t *testing.T) {
+func TestWriteJSON(t *testing.T) {
 	name := filepath.Join(t.TempDir(), "dynamic.json")
 
-	err := writeJsonFile(name, FileMetadataDynamic{Rating: 4, Marks: 2})
+	err := WriteJSON(name, map[string]int{"rating": 4})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := NewFileMetadataDynamicFromFile(name)
+	got, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Rating != 4 || got.Marks != 2 {
-		t.Fatalf("read back %+v", got)
+	if want := "{\n\t\"rating\": 4\n}\n"; string(got) != want {
+		t.Fatalf("content = %q, want %q", got, want)
 	}
 }

@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 	"testing"
+
+	"github.com/blamoo/sugoi/internal/metadata"
 )
 
 const testKey = "{{LIB}}/collection/[Artist] Some Title.cbz"
@@ -81,9 +83,10 @@ func TestWritesRefusedDuringReindex(t *testing.T) {
 	}
 
 	// nothing reached the disk
-	b, _ := os.ReadFile(thing.File.DynamicMetaPath())
-	if string(b) != "{}" {
-		t.Errorf("dynamic.json = %q, want untouched", b)
+	for _, f := range []string{thing.File.DynamicMetaPath(), thing.File.StaticMetaPath()} {
+		if _, err := os.Stat(f); !os.IsNotExist(err) {
+			t.Errorf("%s was written: %v", f, err)
+		}
 	}
 }
 
@@ -93,6 +96,9 @@ func TestSaveStaticFromFormKeepsImportedFields(t *testing.T) {
 
 	// as written by the importer: id_source is an array
 	imported := `{"id":[1970],"id_source":["/item/1970/abc"],"circle":["Circle"],"title":"Old","pages":18}`
+	if err := os.MkdirAll(thing.File.MetaPath, 0755); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(thing.File.StaticMetaPath(), []byte(imported), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +107,7 @@ func TestSaveStaticFromFormKeepsImportedFields(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	saved, err := NewFileMetadataStaticFromFile(thing.File.StaticMetaPath())
+	saved, err := metadata.ReadStatic(thing.File.StaticMetaPath())
 	if err != nil {
 		t.Fatal(err)
 	}

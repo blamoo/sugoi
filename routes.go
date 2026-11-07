@@ -29,6 +29,8 @@ import (
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/gorilla/mux"
+
+	"github.com/blamoo/sugoi/internal/fsutil"
 )
 
 func Routes(router *mux.Router) {
@@ -851,7 +853,7 @@ func RouteThingFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer MultiClose(closers)
+	defer fsutil.MultiClose(closers)
 
 	wantedMime := mime.TypeByExtension(filepath.Ext(vFile))
 

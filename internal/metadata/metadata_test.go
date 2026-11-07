@@ -1,4 +1,4 @@
-package main
+package metadata
 
 import (
 	"net/url"
@@ -8,7 +8,7 @@ import (
 )
 
 func TestApplyFormKeepsFieldsNotInTheForm(t *testing.T) {
-	meta := FileMetadataStatic{
+	meta := Static{
 		Id:        []int{123},
 		IdSource:  IdArray{"/item/123/abc"},
 		Circle:    StringArray{"Circle X"},
@@ -55,17 +55,17 @@ func TestApplyFormKeepsFieldsNotInTheForm(t *testing.T) {
 }
 
 func TestApplyFormRejectsBadDate(t *testing.T) {
-	var meta FileMetadataStatic
+	var meta Static
 	err := meta.ApplyForm(url.Values{"created_at": {"yesterday"}})
 	if err == nil {
 		t.Fatal("expected a parse error")
 	}
 }
 
-func TestMissingMetadataFileIsCreated(t *testing.T) {
+func TestMissingMetadataFileReadsEmpty(t *testing.T) {
 	name := t.TempDir() + "/meta/item/static.json"
 
-	meta, err := NewFileMetadataStaticFromFile(name)
+	meta, err := ReadStatic(name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,8 +73,8 @@ func TestMissingMetadataFileIsCreated(t *testing.T) {
 		t.Errorf("expected empty metadata, got %+v", meta)
 	}
 
-	b, err := os.ReadFile(name)
-	if err != nil || string(b) != "{}" {
-		t.Fatalf("file = %q, %v; want {}", b, err)
+	// reading must not create it (see readJSON)
+	if _, err := os.Stat(name); !os.IsNotExist(err) {
+		t.Fatalf("file was created on read: %v", err)
 	}
 }

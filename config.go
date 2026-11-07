@@ -1,123 +1,35 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
-	"os"
-	"path"
+
+	sugoiconfig "github.com/blamoo/sugoi/internal/config"
 )
+
+// Temporary aliases while the code moves into internal packages.
+type SugoiConfig = sugoiconfig.Config
+type SlideshowPreset = sugoiconfig.SlideshowPreset
 
 var config SugoiConfig
 
 const RANDOM_POOL_SIZE = 10
 const RANDOM_SAMPLE_SIZE = 1000
 
-type SugoiConfig struct {
-	Debug               bool
-	CacheThumbnails     bool
-	CacheDir            string
-	DatabaseDir         string
-	ServerHost          string
-	ServerPort          int
-	MaxConcurrency      int
-	DirVars             map[string]string
-	SessionCookieName   string
-	SessionCookieMaxAge int
-	SessionCookieKey    []byte
-	Users               map[string]string
-	QuickFilters        []QuickFilter
-	SlideshowPresets    []SlideshowPreset
-}
-
-func (c SugoiConfig) DefaultSlideshowPreset() SlideshowPreset {
-	for _, v := range c.SlideshowPresets {
-		if v.Default {
-			return v
-		}
-	}
-
-	return c.SlideshowPresets[0]
-}
-
-func (c SugoiConfig) CacheFile(elem ...string) string {
-	params := []string{c.CacheDir}
-	params = append(params, elem...)
-	return path.Join(params...)
-}
-
-func (c SugoiConfig) Save(to string) error {
-	b, err := json.MarshalIndent(c, "", "\t")
-	if err != nil {
-		return err
-	}
-
-	// 0600: the file holds the session key and password hashes.
-	return WriteFileAtomic(to, 0600, true, func(w io.Writer) error {
-		_, err := w.Write(b)
-		return err
-	})
-}
-
-func (c SugoiConfig) Export() (string, error) {
-	b, err := json.MarshalIndent(c, "", "\t")
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
-}
-
 func InitializeConfig() error {
-	var err error
-	configFile, err := os.Open(configPath)
+	c, err := sugoiconfig.Load(configPath)
 
-	if err != nil {
-		return err
-	}
-	defer configFile.Close()
-
-	configBytes, err := io.ReadAll(configFile)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(configBytes, &config)
-	if err != nil {
-		return err
-	}
-
-	// if config.DefaultCoverFileName == "" {
-	// 	config.DefaultCoverFileName = "01.png"
-	// }
-	if config.MaxConcurrency <= 0 {
-		return fmt.Errorf("MaxConcurrency should be greater than 0")
-	}
-
-	if config.SessionCookieMaxAge <= 0 {
-		return fmt.Errorf("SessionMaxAge should be greater than 0")
-	}
-
-	if len(config.SlideshowPresets) == 0 {
-		config.SlideshowPresets = []SlideshowPreset{
-			{Seconds: 5, Default: true},
-			{Seconds: 10},
-			{Seconds: 30},
-		}
-	}
-
-	if len(config.SessionCookieKey) < 32 {
-		fmt.Println("SessionCookieKey should be a base64 encoded secret byte array with at least 32 bytes")
+	var keyErr sugoiconfig.SessionKeyError
+	if errors.As(err, &keyErr) {
+		fmt.Println(keyErr.Error())
 		fmt.Println("Like this:")
-		b := make([]byte, 32)
-		rand.Read(b)
-		sEnc := base64.StdEncoding.EncodeToString(b)
-		fmt.Println(sEnc)
+		fmt.Println(keyErr.Suggested)
 		return fmt.Errorf("update your configuration file with a valid value, then run sugoi again")
 	}
+	if err != nil {
+		return err
+	}
 
+	config = *c
 	return nil
 }

@@ -20,6 +20,10 @@ import (
 
 	"github.com/facette/natsort"
 	"github.com/mholt/archives"
+
+	"github.com/blamoo/sugoi/internal/metadata"
+
+	"github.com/blamoo/sugoi/internal/fsutil"
 )
 
 type Thing struct {
@@ -38,23 +42,22 @@ func NewThingFromHash(hash string) (*Thing, error) {
 	ret.File = file
 
 	var err error
-	static, err := NewFileMetadataStaticFromFile(file.StaticMetaPath())
+	static, err := metadata.ReadStatic(file.StaticMetaPath())
 	if err != nil {
 		slog.Error("reading static metadata", "file", file.StaticMetaPath(), "err", err)
 		ret.FileMetadataStatic = FileMetadataStatic{}
 	} else {
 		ret.FileMetadataStatic = *static
 	}
-	ret.FileMetadataStatic.FillEmptyFields(file)
+	fillStaticPlaceholders(&ret.FileMetadataStatic, file)
 
-	dynamic, err := NewFileMetadataDynamicFromFile(file.DynamicMetaPath())
+	dynamic, err := metadata.ReadDynamic(file.DynamicMetaPath())
 	if err != nil {
 		slog.Error("reading dynamic metadata", "file", file.DynamicMetaPath(), "err", err)
 		ret.FileMetadataDynamic = FileMetadataDynamic{}
 	} else {
 		ret.FileMetadataDynamic = *dynamic
 	}
-	ret.FileMetadataDynamic.FillEmptyFields(file)
 
 	return &ret, nil
 }
@@ -97,18 +100,16 @@ func (t *Thing) updateDynamic(fn func(d *FileMetadataDynamic) error) error {
 		return ErrReindexRunning
 	}
 
-	current, err := NewFileMetadataDynamicFromFile(t.File.DynamicMetaPath())
+	current, err := metadata.ReadDynamic(t.File.DynamicMetaPath())
 	if err != nil {
 		return err
 	}
-	current.FillEmptyFields(t.File)
-
 	err = fn(current)
 	if err != nil {
 		return err
 	}
 
-	err = writeJsonFile(t.File.DynamicMetaPath(), current)
+	err = metadata.Write(t.File.DynamicMetaPath(), current)
 	if err != nil {
 		return err
 	}
@@ -127,7 +128,7 @@ func (t *Thing) SaveStaticFromForm(form url.Values) error {
 		return ErrReindexRunning
 	}
 
-	current, err := NewFileMetadataStaticFromFile(t.File.StaticMetaPath())
+	current, err := metadata.ReadStatic(t.File.StaticMetaPath())
 	if err != nil {
 		return err
 	}
@@ -137,13 +138,13 @@ func (t *Thing) SaveStaticFromForm(form url.Values) error {
 		return err
 	}
 
-	err = writeJsonFile(t.File.StaticMetaPath(), current)
+	err = metadata.Write(t.File.StaticMetaPath(), current)
 	if err != nil {
 		return err
 	}
 
 	t.FileMetadataStatic = *current
-	t.FileMetadataStatic.FillEmptyFields(t.File)
+	fillStaticPlaceholders(&t.FileMetadataStatic, t.File)
 	return t.File.Reindex()
 }
 
@@ -486,7 +487,7 @@ func (t *Thing) ListFilesRaw() ([]string, error) {
 
 	if len(files) > 0 {
 		filesJoin := strings.Join(files, "\n")
-		err := WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
+		err := fsutil.WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
 			_, err := io.WriteString(w, filesJoin)
 			return err
 		})
@@ -512,8 +513,8 @@ func isImageFile(name string) bool {
 	return slices.Contains(imageExtensions, strings.ToLower(filepath.Ext(name)))
 }
 
-func (t *Thing) getFileReader(file string) (io.Reader, MultiCloser, error) {
-	var closers MultiCloser
+func (t *Thing) getFileReader(file string) (io.Reader, fsutil.MultiCloser, error) {
+	var closers fsutil.MultiCloser
 
 	if len(file) > 0 && file[len(file)-1] != '/' {
 		compressedFileName := path.Clean(path.Join(t.File.RealLocation()))

@@ -1,4 +1,4 @@
-package main
+package metadata
 
 import (
 	"encoding/json"
@@ -78,7 +78,7 @@ func TestIdArray(t *testing.T) {
 func TestIdArrayRoundTrip(t *testing.T) {
 	in := []byte(`{"id_source":["/item/1970/abc123","/view/5"]}`)
 
-	var meta FileMetadataStatic
+	var meta Static
 	if err := json.Unmarshal(in, &meta); err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestIdArrayRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var again FileMetadataStatic
+	var again Static
 	if err := json.Unmarshal(out, &again); err != nil {
 		t.Fatal(err)
 	}

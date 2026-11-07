@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+
+	"github.com/blamoo/sugoi/internal/fsutil"
 )
 
 func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file string) bool {
@@ -48,7 +50,7 @@ func RenderThumbCache(w http.ResponseWriter, r *http.Request, hash string, file 
 func ThumbCacheWrite(hash string, file string, data []byte) {
 	fname := config.CacheFile("thing/file", hash, file)
 
-	err := WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
+	err := fsutil.WriteFileAtomic(fname, 0644, false, func(w io.Writer) error {
 		_, err := w.Write(data)
 		return err
 	})

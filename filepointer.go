@@ -14,6 +14,8 @@ import (
 	"sync"
 
 	"github.com/blevesearch/bleve/v2"
+
+	"github.com/blamoo/sugoi/internal/metadata"
 )
 
 type FilePointerList struct {
@@ -179,21 +181,20 @@ func (fp *FilePointer) Reindex() error {
 func (fp *FilePointer) BuildReindexDoc() FileMetadata {
 	var err error
 	var file FileMetadata
-	static, err := NewFileMetadataStaticFromFile(fp.StaticMetaPath())
+	static, err := metadata.ReadStatic(fp.StaticMetaPath())
 	if err != nil {
 		file.FileMetadataStatic = FileMetadataStatic{}
 	} else {
 		file.FileMetadataStatic = *static
 	}
-	file.FileMetadataStatic.FillEmptyFields(fp)
+	fillStaticPlaceholders(&file.FileMetadataStatic, fp)
 
-	dynamic, err := NewFileMetadataDynamicFromFile(fp.DynamicMetaPath())
+	dynamic, err := metadata.ReadDynamic(fp.DynamicMetaPath())
 	if err != nil {
 		file.FileMetadataDynamic = FileMetadataDynamic{}
 	} else {
 		file.FileMetadataDynamic = *dynamic
 	}
-	file.FileMetadataDynamic.FillEmptyFields(fp)
 
 	file.Random = make(map[string]int, RANDOM_POOL_SIZE)
 	for i := range RANDOM_POOL_SIZE {
