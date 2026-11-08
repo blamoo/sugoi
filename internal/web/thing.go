@@ -51,7 +51,7 @@ func (t *Thing) CoverImageUrl() string {
 		return t.Cover
 	}
 
-	f, err := t.Pages()
+	f, err := t.PageFiles()
 	if err != nil || len(f) == 0 {
 		return "/static/empty.jpg"
 	}
@@ -245,7 +245,7 @@ func (t *Thing) EmptyStarsRepeat(str string) string {
 }
 
 func (t *Thing) ListFiles() ([]string, error) {
-	raw, err := t.Pages()
+	raw, err := t.PageFiles()
 	if err != nil {
 		return nil, err
 	}

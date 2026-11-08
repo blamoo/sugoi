@@ -252,12 +252,22 @@ func TestPages(t *testing.T) {
 		expectStatus(t, rec, http.StatusBadRequest)
 
 		for _, format := range []string{"covers", "table", "full"} {
-			expectStatus(t, ts.get("/?format="+format), http.StatusOK)
+			rec := ts.get("/?format=" + format)
+			expectStatus(t, rec, http.StatusOK)
+			if strings.Contains(rec.Body.String(), "1.png 2.png") {
+				t.Fatalf("format=%s lists page files instead of the page count", format)
+			}
 		}
 
 		rec = ts.get("/thing/details/" + ts.hash)
 		expectStatus(t, rec, http.StatusOK)
 		expectBody(t, rec, "Read count") // rendered by Thing.HtmlTable
+		// the page count, not the list of page files (a Pages() method once
+		// shadowed the Pages field in the templates)
+		expectBody(t, rec, "<td>2</td>")
+		if strings.Contains(rec.Body.String(), "1.png 2.png") {
+			t.Fatal("details table lists page files instead of the page count")
+		}
 		expectBody(t, rec, `artist_kw%3A%22bar%22`)
 
 		rec = ts.get("/thing/editMetadata/" + ts.hash + "?format=edit")

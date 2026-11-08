@@ -135,7 +135,7 @@ func (job *ReindexJob) Start() error {
 
 			// warms the page-list cache for the reader
 			if thing, err := c.Get(file.Hash); err == nil {
-				thing.Pages()
+				thing.PageFiles()
 			}
 
 			err = batch.Index(file.Hash, c.document(file))

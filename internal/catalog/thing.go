@@ -29,9 +29,9 @@ var ErrReindexRunning = errors.New("a full reindex is running, try again when it
 func (t *Thing) Key() string  { return t.File.Key }
 func (t *Thing) Hash() string { return t.File.Hash }
 
-// Pages lists the item's page images: the explicit "files" of static.json
+// PageFiles lists the item's page images: the explicit "files" of static.json
 // when present, otherwise the images found in the archive.
-func (t *Thing) Pages() ([]string, error) {
+func (t *Thing) PageFiles() ([]string, error) {
 	if len(t.Files) > 0 {
 		return t.Files, nil
 	}

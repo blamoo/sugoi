@@ -434,7 +434,7 @@ func (srv *Server) routeThingDetails(w http.ResponseWriter, r *http.Request) {
 		Thing: thing,
 	}
 
-	data.FilesRaw, _ = thing.Pages()
+	data.FilesRaw, _ = thing.PageFiles()
 	srv.renderPage(w, r, "thingDetails.gohtml", data)
 }
 
