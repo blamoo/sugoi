@@ -38,7 +38,7 @@ func (srv *Server) checkAuth(w http.ResponseWriter, r *http.Request) (string, bo
 	return user, false
 }
 
-func (srv *Server) checkAuthBasic(w http.ResponseWriter, r *http.Request) (string, bool) {
+func (srv *Server) checkAuthBasic(_ http.ResponseWriter, r *http.Request) (string, bool) {
 	fUser, fPassword, ok1 := r.BasicAuth()
 
 	if !ok1 {

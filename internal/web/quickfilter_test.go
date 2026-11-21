@@ -81,11 +81,77 @@ func TestQuickFiltersUrl(t *testing.T) {
 	}
 }
 
+func TestQuickFilterToggle(t *testing.T) {
+	rules := newQuickFilterRules([]config.QuickFilter{
+		{Add: "rating:5"},
+		{Add: "-marks:0"},
+		{Add: "marks:<2"},
+		{Add: `tags:"red fox" landscape`},
+	})
+	r5, notMarked, fewMarks, multi := rules[0], rules[1], rules[2], rules[3]
+
+	tests := []struct {
+		name   string
+		rule   quickFilterRule
+		q      string
+		active bool
+		off    string // unapply result, when active
+	}{
+		{"empty search", r5, "", false, ""},
+		{"exact", r5, "alice rating:5", true, "alice"},
+		{"plus prefix is the same", r5, "+rating:5 alice", true, "alice"},
+		{"spaced", r5, "rating : 5", true, ""},
+		{"other value", r5, "rating:4", false, ""},
+		{"other operator", r5, "rating:>=5", false, ""},
+		{"negated is different", r5, "-rating:5", false, ""},
+		{"negated add", notMarked, "alice -marks:0", true, "alice"},
+		{"negated add, positive search", notMarked, "marks:0", false, ""},
+		{"operator", fewMarks, "marks:<2", true, ""},
+		{"keeps other clauses on the field", r5, "rating:5 rating:>3", true, "rating:>3"},
+		{"all clauses needed", multi, `tags:"red fox"`, false, ""},
+		{"all clauses present", multi, `landscape alice tags:"red fox"`, true, "alice"},
+		{"phrase is not a word", r5, `rating:"5"`, false, ""},
+	}
+	for _, tt := range tests {
+		if got := tt.rule.isActive(tt.q); got != tt.active {
+			t.Errorf("%s: isActive(%q) = %v, want %v", tt.name, tt.q, got, tt.active)
+			continue
+		}
+		if tt.active {
+			if got := tt.rule.unapply(tt.q); got != tt.off {
+				t.Errorf("%s: unapply(%q) = %q, want %q", tt.name, tt.q, got, tt.off)
+			}
+		}
+	}
+
+	if (quickFilterRule{}).isActive("anything") {
+		t.Error("a rule without clauses is active")
+	}
+}
+
+func TestQuickFiltersActiveUrl(t *testing.T) {
+	srv := &Server{quickFilterRules: newQuickFilterRules([]config.QuickFilter{{Add: "rating:5"}, {Add: "marks:0"}})}
+
+	got := srv.quickFilters(url.Values{"q": {"rating:5"}, "order": {"title"}})
+	if !got[0].Active || got[0].Href != "/?order=title" {
+		t.Errorf("active filter = %+v, want a link without q", got[0])
+	}
+	if got[1].Active || got[1].Href != "/?order=title&q=rating%3A5+marks%3A0" {
+		t.Errorf("inactive filter = %+v", got[1])
+	}
+}
+
 func TestQuickFilterBadgeEscapes(t *testing.T) {
 	got := string(QuickFilter{Label: `<b>&`, Href: `/?a=1&q="x"`}.Badge())
 	want := `<a class="badge bg-primary text-decoration-none" href="/?a=1&amp;q=&#34;x&#34;">&lt;b&gt;&amp;</a>`
 	if got != want {
 		t.Errorf("Badge = %s\nwant    %s", got, want)
+	}
+
+	got = string(QuickFilter{Label: `<b>`, Href: `/?a=1&b=2`, Active: true}.Badge())
+	want = `<a class="badge bg-success text-decoration-none" href="/?a=1&amp;b=2" title="Remove this filter">&lt;b&gt; <i class="fa-solid fa-xmark"></i></a>`
+	if got != want {
+		t.Errorf("active Badge = %s\nwant           %s", got, want)
 	}
 }
 

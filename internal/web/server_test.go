@@ -258,6 +258,8 @@ func TestPages(t *testing.T) {
 		// quick filter badge: replaces the rating clause, keeps the rest
 		rec = ts.get("/?page=0&q=" + url.QueryEscape(`alice rating:1`))
 		expectBody(t, rec, `href="/?q=alice+rating%3A5">rating:5</a>`)
+		rec = ts.get("/?q=" + url.QueryEscape(`alice +rating:5`))
+		expectBody(t, rec, `<a class="badge bg-success text-decoration-none" href="/?q=alice" title="Remove this filter">rating:5`)
 
 		rec = ts.get("/?q=" + url.QueryEscape(`artist:^bar$`)) // syntax error
 		expectStatus(t, rec, http.StatusBadRequest)

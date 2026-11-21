@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"strings"
 
 	"github.com/blamoo/sugoi/internal/fsutil"
 )
@@ -74,7 +75,7 @@ func Load(file string) (*Config, error) {
 	}
 
 	for i, f := range c.QuickFilters {
-		if f.Add == "" {
+		if strings.TrimSpace(f.Add) == "" {
 			return nil, fmt.Errorf("QuickFilters[%d] (%q): Add is empty", i, f.Label)
 		}
 		if _, err := regexp.Compile(f.Remove); err != nil {

@@ -58,7 +58,7 @@ func TestLoadValidation(t *testing.T) {
 	cases := map[string]string{
 		"MaxConcurrency":      `{"MaxConcurrency":0,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `"}`,
 		"SessionCookieMaxAge": `{"MaxConcurrency":1,"SessionCookieMaxAge":0,"SessionCookieKey":"` + validKey + `"}`,
-		"Add is empty":        `{"MaxConcurrency":1,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `","QuickFilters":[{"Label":"x"}]}`,
+		"Add is empty":        `{"MaxConcurrency":1,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `","QuickFilters":[{"Label":"x","Add":" "}]}`,
 		"invalid Remove":      `{"MaxConcurrency":1,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `","QuickFilters":[{"Add":"x","Remove":"("}]}`,
 	}
 	for field, body := range cases {

@@ -89,7 +89,7 @@ func (srv *Server) currentTemplates() (*template.Template, error) {
 	return srv.getTemplates()
 }
 
-func (srv *Server) renderPage(w http.ResponseWriter, r *http.Request, name string, data any) {
+func (srv *Server) renderPage(w http.ResponseWriter, _ *http.Request, name string, data any) {
 	tmpl, err := srv.getTemplates()
 	if err != nil {
 		fmt.Fprint(w, err)

@@ -16,11 +16,11 @@ import (
 
 // quickFilterRule is a config.QuickFilter prepared once at startup.
 type quickFilterRule struct {
-	label  string
-	add    string
-	addRaw []string       // Add's clauses, to check they survive being appended
-	fields []string       // fields of Add's clauses, replaced in the search
-	remove *regexp.Regexp // optional extra removal
+	label   string
+	add     string
+	clauses []search.Clause // Add's clauses
+	fields  []string        // fields of Add's clauses, replaced in the search
+	remove  *regexp.Regexp  // optional extra removal
 }
 
 func newQuickFilterRules(filters []config.QuickFilter) []quickFilterRule {
@@ -30,8 +30,8 @@ func newQuickFilterRules(filters []config.QuickFilter) []quickFilterRule {
 		if rule.label == "" {
 			rule.label = rule.add
 		}
-		for _, c := range search.ParseQueryString(rule.add) {
-			rule.addRaw = append(rule.addRaw, c.Raw)
+		rule.clauses = search.ParseQueryString(rule.add)
+		for _, c := range rule.clauses {
 			if c.Field != "" && !slices.Contains(rule.fields, c.Field) {
 				rule.fields = append(rule.fields, c.Field)
 			}
@@ -53,9 +53,8 @@ func newQuickFilterRules(filters []config.QuickFilter) []quickFilterRule {
 // its Add clauses appended. Malformed clauses (a dangling "-" or "field:",
 // or a stray ":x" or "^2" that would join the clause before it once its
 // neighbor is gone; all invalid for Bleve anyway) are dropped, and the last
-// clause is
-// rewritten, or dropped as a last resort, if it would swallow the added ones
-// (an unterminated phrase, a trailing backslash).
+// clause is rewritten, or dropped as a last resort, if it would swallow the
+// added ones (an unterminated phrase, a trailing backslash).
 func (rule quickFilterRule) apply(q string) string {
 	clauses := search.ParseQueryString(q)
 	kept := clauses[:0]
@@ -93,25 +92,63 @@ func (rule quickFilterRule) apply(q string) string {
 // its end.
 func (rule quickFilterRule) endsWithAdd(q string) bool {
 	clauses := search.ParseQueryString(q)
-	if len(clauses) < len(rule.addRaw) {
+	if len(clauses) < len(rule.clauses) {
 		return false
 	}
-	for i, c := range clauses[len(clauses)-len(rule.addRaw):] {
-		if c.Raw != rule.addRaw[i] {
+	for i, c := range clauses[len(clauses)-len(rule.clauses):] {
+		if c.Raw != rule.clauses[i].Raw {
 			return false
 		}
 	}
 	return true
 }
 
-// QuickFilter is a quick filter badge ready to render.
+// sameClause reports whether two clauses mean the same, however written.
+// Unprefixed clauses are required (see search.ShouldToMust), so "" and "+"
+// are the same prefix.
+func sameClause(a, b search.Clause) bool {
+	required := func(c search.Clause) bool { return c.Prefix != "-" }
+	return required(a) == required(b) && a.Field == b.Field && a.Op == b.Op &&
+		a.Value == b.Value && a.Phrase == b.Phrase && a.Suffix == b.Suffix
+}
+
+// isActive reports whether every Add clause is already in q.
+func (rule quickFilterRule) isActive(q string) bool {
+	if len(rule.clauses) == 0 {
+		return false
+	}
+	clauses := search.ParseQueryString(q)
+	for _, want := range rule.clauses {
+		if !slices.ContainsFunc(clauses, func(c search.Clause) bool { return sameClause(c, want) }) {
+			return false
+		}
+	}
+	return true
+}
+
+// unapply returns q without the rule's Add clauses, leaving any other clause
+// on the same fields.
+func (rule quickFilterRule) unapply(q string) string {
+	clauses := search.ParseQueryString(q)
+	kept := clauses[:0]
+	for _, c := range clauses {
+		if !slices.ContainsFunc(rule.clauses, func(want search.Clause) bool { return sameClause(c, want) }) {
+			kept = append(kept, c)
+		}
+	}
+	return search.JoinClauses(kept)
+}
+
+// QuickFilter is a quick filter badge ready to render. Active filters are
+// already in the search, and their link removes them.
 type QuickFilter struct {
-	Label string
-	Href  string
+	Label  string
+	Href   string
+	Active bool
 }
 
 // quickFilters builds the badges for the home page, each linking to the
-// current search (form) with that filter applied.
+// current search (form) with that filter applied, or removed if active.
 func (srv *Server) quickFilters(form url.Values) []QuickFilter {
 	params := url.Values{}
 	for k, v := range form {
@@ -125,13 +162,25 @@ func (srv *Server) quickFilters(form url.Values) []QuickFilter {
 
 	ret := make([]QuickFilter, 0, len(srv.quickFilterRules))
 	for _, rule := range srv.quickFilterRules {
-		params.Set("q", rule.apply(q))
+		active := rule.isActive(q)
+		newQ := rule.apply(q)
+		if active {
+			newQ = rule.unapply(q)
+		}
+		if newQ != "" {
+			params.Set("q", newQ)
+		} else {
+			params.Del("q")
+		}
 		u := url.URL{Path: "/", RawQuery: params.Encode()}
-		ret = append(ret, QuickFilter{Label: rule.label, Href: u.String()})
+		ret = append(ret, QuickFilter{Label: rule.label, Href: u.String(), Active: active})
 	}
 	return ret
 }
 
 func (t QuickFilter) Badge() template.HTML {
+	if t.Active {
+		return template.HTML(fmt.Sprintf(`<a class="badge bg-success text-decoration-none" href="%s" title="Remove this filter">%s <i class="fa-solid fa-xmark"></i></a>`, html.EscapeString(t.Href), html.EscapeString(t.Label)))
+	}
 	return template.HTML(fmt.Sprintf(`<a class="badge bg-primary text-decoration-none" href="%s">%s</a>`, html.EscapeString(t.Href), html.EscapeString(t.Label)))
 }
