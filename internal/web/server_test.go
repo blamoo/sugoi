@@ -271,6 +271,14 @@ func TestPages(t *testing.T) {
 		rec = ts.get("/?q=" + url.QueryEscape(`artist:^bar$`)) // syntax error
 		expectStatus(t, rec, http.StatusBadRequest)
 
+		// an unknown order falls back to score (it once sorted by a field
+		// that doesn't exist while the select showed "Score")
+		rec = ts.get("/?order=bogus")
+		expectStatus(t, rec, http.StatusOK)
+		expectBody(t, rec, `<option value="" selected >Score</option>`)
+		rec = ts.get("/?order=-title")
+		expectBody(t, rec, `<option value="-title" selected >Title desc</option>`)
+
 		for _, format := range []string{"covers", "table", "full"} {
 			rec := ts.get("/?format=" + format)
 			expectStatus(t, rec, http.StatusOK)

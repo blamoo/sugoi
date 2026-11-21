@@ -106,7 +106,7 @@ func (srv *Server) routeRoot(w http.ResponseWriter, r *http.Request) {
 	data.Order = r.FormValue("order")
 
 	if _, ok := orderFields.Find(data.Order); !ok {
-		data.Order = "CreatedAt"
+		data.Order = "" // like no order: by score, as the select then shows
 	}
 	data.Search = r.FormValue("q")
 
