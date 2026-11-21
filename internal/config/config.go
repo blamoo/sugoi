@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
 
 	"github.com/blamoo/sugoi/internal/fsutil"
 )
@@ -30,12 +31,15 @@ type Config struct {
 	SlideshowPresets    []SlideshowPreset
 }
 
-// QuickFilter is a badge on the home page that adds Add to the search and
-// first removes whatever matches the Remove regexp.
+// QuickFilter is a badge on the home page that adds Add (query-string
+// clauses such as "rating:5" or "-marks:0") to the search. Clauses already in
+// the search for the same fields as Add are removed first, so filters on one
+// field replace each other. Remove is an optional regexp for anything else to
+// strip. Label defaults to Add.
 type QuickFilter struct {
-	Label  string
+	Label  string `json:",omitempty"`
 	Add    string
-	Remove string
+	Remove string `json:",omitempty"`
 }
 
 // SessionKeyError is returned when SessionCookieKey is missing or too short.
@@ -67,6 +71,15 @@ func Load(file string) (*Config, error) {
 
 	if c.SessionCookieMaxAge <= 0 {
 		return nil, fmt.Errorf("SessionCookieMaxAge should be greater than 0")
+	}
+
+	for i, f := range c.QuickFilters {
+		if f.Add == "" {
+			return nil, fmt.Errorf("QuickFilters[%d] (%q): Add is empty", i, f.Label)
+		}
+		if _, err := regexp.Compile(f.Remove); err != nil {
+			return nil, fmt.Errorf("QuickFilters[%d] (%q): invalid Remove regexp: %w", i, f.Label, err)
+		}
 	}
 
 	if len(c.SlideshowPresets) == 0 {

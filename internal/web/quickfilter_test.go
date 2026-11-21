@@ -1,0 +1,122 @@
+package web
+
+import (
+	"net/url"
+	"testing"
+
+	"github.com/blevesearch/bleve/v2"
+
+	"github.com/blamoo/sugoi/internal/config"
+	"github.com/blamoo/sugoi/internal/search"
+)
+
+func TestQuickFilterApply(t *testing.T) {
+	rules := newQuickFilterRules([]config.QuickFilter{
+		{Add: "rating:5"},
+		{Add: "-marks:0"},
+		{Add: "marks:<2", Label: "few marks"},
+		{Add: "landscape"},
+		{Add: "tags:sea", Remove: `\bmountain\b`},
+	})
+	r5, notMarked, fewMarks, free, sea := rules[0], rules[1], rules[2], rules[3], rules[4]
+
+	tests := []struct {
+		name string
+		rule quickFilterRule
+		q    string
+		want string
+	}{
+		{"empty search", r5, "", "rating:5"},
+		{"appends", r5, "alice", "alice rating:5"},
+		{"replaces same field", r5, "alice rating:0", "alice rating:5"},
+		{"replaces any form", r5, `+rating:>=3 alice -rating:1 rating : 2 bob`, "alice bob rating:5"},
+		{"keeps other fields", r5, `artist_kw:"alice b" marks:0`, `artist_kw:"alice b" marks:0 rating:5`},
+		{"negated add", notMarked, "marks:<2 alice", "alice -marks:0"},
+		{"operator add", fewMarks, "-marks:0", "marks:<2"},
+		{"no field removes nothing", free, "landscape rating:5", "landscape rating:5 landscape"},
+		{"extra Remove regexp", sea, "mountain tags:lake alice", "alice tags:sea"},
+		{"unterminated phrase is closed", r5, `alice "open rating:1`, `alice "open rating:1" rating:5`},
+		{"trailing backslash is dropped", r5, `alice\`, `alice rating:5`},
+		{"both", r5, `alice "open\`, `alice "open" rating:5`},
+		{"dangling prefix", r5, "alice -", "alice rating:5"},
+		{"dangling field", r5, "alice tags:", "alice rating:5"},
+		{"dangling field in the middle", r5, "tags: alice", "tags: alice rating:5"},
+		{"stray colon", r5, "alice 0::0", "alice rating:5"},
+	}
+	for _, tt := range tests {
+		if got := tt.rule.apply(tt.q); got != tt.want {
+			t.Errorf("%s: apply(%q) = %q, want %q", tt.name, tt.q, got, tt.want)
+		}
+	}
+
+	if r5.label != "rating:5" || fewMarks.label != "few marks" {
+		t.Errorf("labels = %q, %q", r5.label, fewMarks.label)
+	}
+}
+
+func TestQuickFiltersUrl(t *testing.T) {
+	srv := &Server{quickFilterRules: newQuickFilterRules([]config.QuickFilter{{Add: "rating:5"}})}
+	form := url.Values{
+		"q":       {"alice rating:1"},
+		"order":   {"title"},
+		"page":    {"3"},
+		"random":  {"1"},
+		"refresh": {"1"},
+	}
+
+	got := srv.quickFilters(form)
+	if len(got) != 1 {
+		t.Fatalf("got %d filters", len(got))
+	}
+	u, err := url.Parse(got[0].Href)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := url.Values{"q": {"alice rating:5"}, "order": {"title"}}
+	if u.Path != "/" || u.Query().Encode() != want.Encode() {
+		t.Errorf("Href = %q, want /?%s", got[0].Href, want.Encode())
+	}
+	if form.Get("q") != "alice rating:1" {
+		t.Error("form was modified")
+	}
+}
+
+func TestQuickFilterBadgeEscapes(t *testing.T) {
+	got := string(QuickFilter{Label: `<b>&`, Href: `/?a=1&q="x"`}.Badge())
+	want := `<a class="badge bg-primary text-decoration-none" href="/?a=1&amp;q=&#34;x&#34;">&lt;b&gt;&amp;</a>`
+	if got != want {
+		t.Errorf("Badge = %s\nwant    %s", got, want)
+	}
+}
+
+func FuzzQuickFilterApply(f *testing.F) {
+	for _, s := range []string{
+		"alice rating:1", `+rating:>=3 -rating:1 rating : 2 bob`, `artist_kw:"alice b"`,
+		`"open rating:1`, "rating:- 1", `a\:b rating:5^2`,
+	} {
+		f.Add(s)
+	}
+	rule := newQuickFilterRules([]config.QuickFilter{{Add: "-rating:5"}})[0]
+	f.Fuzz(func(t *testing.T, q string) {
+		got := rule.apply(q)
+
+		// only the added clause is left on the filter's field
+		var onField []string
+		for _, c := range search.ParseQueryString(got) {
+			if c.Field == "rating" {
+				onField = append(onField, c.Raw)
+			}
+		}
+		if len(onField) != 1 || onField[0] != "-rating:5" {
+			t.Fatalf("apply(%q) = %q, rating clauses %q", q, got, onField)
+		}
+
+		// a valid search stays valid
+		if _, err := bleve.NewQueryStringQuery(q).Parse(); err != nil {
+			return
+		}
+		if _, err := bleve.NewQueryStringQuery(got).Parse(); err != nil {
+			t.Fatalf("apply(%q) = %q, rejected by Bleve: %v", q, got, err)
+		}
+	})
+}

@@ -95,7 +95,7 @@ func newTestServer(t *testing.T, debug bool) *testServer {
 		SessionCookieMaxAge: 60,
 		SessionCookieKey:    []byte("0123456789abcdef0123456789abcdef"),
 		Users:               map[string]string{testUser: string(hash)},
-		QuickFilters:        []config.QuickFilter{{Label: "rating:5", Add: "+rating:5", Remove: `\s*[+-]?rating:\d+`}},
+		QuickFilters:        []config.QuickFilter{{Add: "rating:5"}},
 		SlideshowPresets:    []config.SlideshowPreset{{Seconds: 5, Default: true}},
 	}
 
@@ -247,6 +247,10 @@ func TestPages(t *testing.T) {
 
 		rec = ts.get("/?q=" + url.QueryEscape(`artist_kw:"bar" tags:nothing`))
 		expectBody(t, rec, "No results")
+
+		// quick filter badge: replaces the rating clause, keeps the rest
+		rec = ts.get("/?page=0&q=" + url.QueryEscape(`alice rating:1`))
+		expectBody(t, rec, `href="/?q=alice+rating%3A5">rating:5</a>`)
 
 		rec = ts.get("/?q=" + url.QueryEscape(`artist:^bar$`)) // syntax error
 		expectStatus(t, rec, http.StatusBadRequest)

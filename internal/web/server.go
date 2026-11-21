@@ -25,6 +25,8 @@ type Server struct {
 
 	sessions *sessions.CookieStore
 
+	quickFilterRules []quickFilterRule
+
 	// basicAuthOk remembers credentials that already passed bcrypt (see
 	// checkPasswordHashCached).
 	basicAuthOk sync.Map
@@ -37,6 +39,7 @@ type Server struct {
 // static/ (the repository root, or wherever they were deployed).
 func NewServer(cfg *config.Config, cat *catalog.Catalog, assetsDir string) *Server {
 	srv := &Server{cfg: cfg, cat: cat, assetsDir: assetsDir}
+	srv.quickFilterRules = newQuickFilterRules(cfg.QuickFilters)
 
 	srv.sessions = sessions.NewCookieStore(cfg.SessionCookieKey)
 	srv.sessions.Options.Secure = false

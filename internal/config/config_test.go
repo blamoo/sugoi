@@ -21,7 +21,7 @@ func writeConfig(t *testing.T, body string) string {
 
 func TestLoadDefaultsAndSaveRoundTrip(t *testing.T) {
 	name := writeConfig(t, `{"MaxConcurrency":2,"SessionCookieMaxAge":60,"SessionCookieKey":"`+validKey+`",
-		"QuickFilters":[{"Label":"r5","Add":"+rating:5","Remove":"rating:\\d"}]}`)
+		"QuickFilters":[{"Label":"r5","Add":"rating:5"}]}`)
 
 	c, err := Load(name)
 	if err != nil {
@@ -30,7 +30,7 @@ func TestLoadDefaultsAndSaveRoundTrip(t *testing.T) {
 	if len(c.SlideshowPresets) != 3 || c.DefaultSlideshowPreset().Seconds != 5 {
 		t.Errorf("default slideshow presets not applied: %+v", c.SlideshowPresets)
 	}
-	if c.QuickFilters[0].Add != "+rating:5" {
+	if c.QuickFilters[0].Add != "rating:5" {
 		t.Errorf("quick filters = %+v", c.QuickFilters)
 	}
 
@@ -41,6 +41,9 @@ func TestLoadDefaultsAndSaveRoundTrip(t *testing.T) {
 	info, _ := os.Stat(out)
 	if info.Mode().Perm() != 0600 {
 		t.Errorf("saved with %v, want 0600", info.Mode().Perm())
+	}
+	if saved, _ := os.ReadFile(out); strings.Contains(string(saved), `"Remove"`) {
+		t.Errorf("empty Remove was saved: %s", saved)
 	}
 	again, err := Load(out)
 	if err != nil {
@@ -55,6 +58,8 @@ func TestLoadValidation(t *testing.T) {
 	cases := map[string]string{
 		"MaxConcurrency":      `{"MaxConcurrency":0,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `"}`,
 		"SessionCookieMaxAge": `{"MaxConcurrency":1,"SessionCookieMaxAge":0,"SessionCookieKey":"` + validKey + `"}`,
+		"Add is empty":        `{"MaxConcurrency":1,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `","QuickFilters":[{"Label":"x"}]}`,
+		"invalid Remove":      `{"MaxConcurrency":1,"SessionCookieMaxAge":60,"SessionCookieKey":"` + validKey + `","QuickFilters":[{"Add":"x","Remove":"("}]}`,
 	}
 	for field, body := range cases {
 		_, err := Load(writeConfig(t, body))

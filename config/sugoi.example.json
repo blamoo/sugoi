@@ -17,9 +17,11 @@
     },
     "QuickFilters": [
         {
-            "Label": "rating:5",
-            "Add": "+rating:5",
-            "Remove": "\\s*[+-]?rating:\\d+"
+            "Add": "rating:5"
+        },
+        {
+            "Add": "-marks:0",
+            "Label": "read"
         }
     ]
 }
