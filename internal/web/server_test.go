@@ -109,7 +109,14 @@ func newTestServer(t *testing.T, debug bool) *testServer {
 	cat := catalog.New(cfg, lib, index)
 	file := lib.List[0]
 
-	static := metadata.Static{Artist: metadata.StringArray{"bar"}, Tags: metadata.StringArray{"Glasses"}, Title: "A Book"}
+	static := metadata.Static{
+		Id:     []int{7},
+		Artist: metadata.StringArray{"bar"},
+		Tags:   metadata.StringArray{"Glasses"},
+		Title:  "A Book",
+		Series: metadata.StringArray{"Some Series"},
+		Urls:   metadata.StringArray{"https://example.com/item?a=1&b=<x>"},
+	}
 	if err := metadata.Write(file.StaticMetaPath(), static); err != nil {
 		t.Fatal(err)
 	}
@@ -273,6 +280,9 @@ func TestPages(t *testing.T) {
 			t.Fatal("details table lists page files instead of the page count")
 		}
 		expectBody(t, rec, `artist_kw%3A%22bar%22`)
+		expectBody(t, rec, `href="/?q=%2Bid%3A7">7</a>`)                                       // NewSearchTermInt
+		expectBody(t, rec, `href="/?q=%2Bseries%3A%22Some&#43;Series%22">Some Series</a>`)     // SeriesUrls
+		expectBody(t, rec, `title="url" href="https://example.com/item?a=1&amp;b=&lt;x&gt;">`) // UrlButtons, escaped
 
 		rec = ts.get("/thing/editMetadata/" + ts.hash + "?format=edit")
 		expectStatus(t, rec, http.StatusOK)
@@ -360,6 +370,13 @@ func TestWrites(t *testing.T) {
 		t.Errorf("GET addMark = %d marks, want 1", marks.Marks)
 	}
 
+	for _, path := range []string{"/thing/0000/addMark.json", "/thing/0000/subMark.json", "/thing/pushRead/0000"} {
+		expectStatus(t, ts.post(path, nil), http.StatusNotFound)
+	}
+	for _, path := range []string{thing + "/addMark.json", thing + "/subMark.json", "/thing/pushRead/" + ts.hash} {
+		expectStatus(t, ts.do(http.MethodPut, path, nil, true), http.StatusMethodNotAllowed)
+	}
+
 	var count int
 	decodeJSON(t, ts.post("/thing/pushRead/"+ts.hash, nil), &count)
 	if count != 1 {
@@ -443,4 +460,64 @@ func TestReindexFromSystemPage(t *testing.T) {
 	}
 
 	expectStatus(t, ts.post("/system", url.Values{"action": {"nope"}}), http.StatusInternalServerError)
+}
+
+func TestLogout(t *testing.T) {
+	ts := newTestServer(t, false)
+
+	withCookies := func(method, target string, cookies []*http.Cookie) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(method, target, nil)
+		for _, c := range cookies {
+			req.AddCookie(c)
+		}
+		rec := httptest.NewRecorder()
+		ts.handler.ServeHTTP(rec, req)
+		return rec
+	}
+
+	rec := ts.do(http.MethodPost, "/login", url.Values{"user": {testUser}, "password": {testPassword}}, false)
+	expectStatus(t, rec, http.StatusFound)
+	session := rec.Result().Cookies()
+	expectStatus(t, withCookies(http.MethodGet, "/", session), http.StatusOK)
+
+	// GET doesn't log out (a link or prefetch shouldn't end the session)
+	rec = withCookies(http.MethodGet, "/logout", session)
+	expectStatus(t, rec, http.StatusFound)
+	if len(rec.Result().Cookies()) != 0 {
+		t.Error("GET /logout changed the session cookie")
+	}
+
+	rec = withCookies(http.MethodPost, "/logout", session)
+	expectStatus(t, rec, http.StatusFound)
+	if loc := rec.Header().Get("Location"); loc != "/login" {
+		t.Errorf("logout redirected to %q", loc)
+	}
+	loggedOut := rec.Result().Cookies()
+	if len(loggedOut) == 0 {
+		t.Fatal("logout didn't replace the session cookie")
+	}
+	rec = withCookies(http.MethodGet, "/", loggedOut)
+	expectStatus(t, rec, http.StatusFound)
+	if loc := rec.Header().Get("Location"); !strings.HasPrefix(loc, "/login") {
+		t.Errorf("after logout / redirected to %q", loc)
+	}
+}
+
+func TestReindexStatusPolling(t *testing.T) {
+	ts := newTestServer(t, false) // ran a reindex just now
+
+	var status struct {
+		Stop    bool
+		Message string
+	}
+	decodeJSON(t, ts.get("/system/reindexStatus"), &status)
+	if status.Stop || status.Message == "" {
+		t.Errorf("right after a reindex: %+v, want its last log line", status)
+	}
+
+	status.Stop, status.Message = false, ""
+	decodeJSON(t, ts.do(http.MethodGet, "/system/reindexStatus", nil, false), &status)
+	if !status.Stop || status.Message != "" {
+		t.Errorf("logged out: %+v, want Stop and no message", status)
+	}
 }
