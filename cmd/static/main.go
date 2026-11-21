@@ -12,8 +12,8 @@ import (
 )
 
 var files map[string]string = map[string]string{
-	"static/js/jquery.min.js":                  "https://cdnjs.cloudflare.com/ajax/libs/jquery/4.0.0/jquery.min.js",
-	"static/js/bootstrap.min.js":               "https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js",
+	"static/js/jquery.min.js":                  "https://cdnjs.cloudflare.com/ajax/libs/jquery/4.1.0/jquery.min.js",
+	"static/js/bootstrap.min.js":               "https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.9/js/bootstrap.bundle.min.js",
 	"static/css/bootswatch.min.css":            "https://cdnjs.cloudflare.com/ajax/libs/bootswatch/5.3.8/darkly/bootstrap.min.css",
 	"static/css/font-awesome.min.css":          "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css",
 	"static/webfonts/fa-brands-400.woff2":      "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/webfonts/fa-brands-400.woff2",
