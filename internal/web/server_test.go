@@ -257,9 +257,16 @@ func TestPages(t *testing.T) {
 
 		// quick filter badge: replaces the rating clause, keeps the rest
 		rec = ts.get("/?page=0&q=" + url.QueryEscape(`alice rating:1`))
-		expectBody(t, rec, `href="/?q=alice+rating%3A5">rating:5</a>`)
+		expectBody(t, rec, `href="/?q=alice+rating%3A5" data-quick-filter="0">rating:5</a>`)
 		rec = ts.get("/?q=" + url.QueryEscape(`alice +rating:5`))
-		expectBody(t, rec, `<a class="badge bg-success text-decoration-none" href="/?q=alice" title="Remove this filter">rating:5`)
+		expectBody(t, rec, `<a class="badge bg-success text-decoration-none" href="/?q=alice" data-quick-filter="0" title="Remove this filter">rating:5`)
+
+		// the search form sends qf when a badge is clicked
+		rec = ts.get("/?page=0&order=Title&q=" + url.QueryEscape("alice landscape") + "&qf=0")
+		expectStatus(t, rec, http.StatusFound)
+		if loc := rec.Header().Get("Location"); loc != "/?order=Title&q=alice+landscape+rating%3A5" {
+			t.Errorf("qf redirected to %q", loc)
+		}
 
 		rec = ts.get("/?q=" + url.QueryEscape(`artist:^bar$`)) // syntax error
 		expectStatus(t, rec, http.StatusBadRequest)

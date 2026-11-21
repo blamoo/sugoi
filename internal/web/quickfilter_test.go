@@ -141,15 +141,43 @@ func TestQuickFiltersActiveUrl(t *testing.T) {
 	}
 }
 
+func TestQuickFilterRedirect(t *testing.T) {
+	srv := &Server{quickFilterRules: newQuickFilterRules([]config.QuickFilter{{Add: "rating:5"}, {Add: "marks:0"}})}
+	form := func(qf, q string) url.Values {
+		return url.Values{"qf": {qf}, "q": {q}, "order": {"title"}, "page": {"0"}, "format": {"table"}}
+	}
+
+	tests := []struct {
+		name string
+		form url.Values
+		want string
+	}{
+		{"no qf", url.Values{"q": {"alice"}}, ""},
+		{"applies to the typed search", form("0", "alice landscape rating:1"), "/?format=table&order=title&q=alice+landscape+rating%3A5"},
+		{"second filter", form("1", "alice"), "/?format=table&order=title&q=alice+marks%3A0"},
+		{"toggles off", form("0", "alice rating:5"), "/?format=table&order=title&q=alice"},
+		{"empty search", form("0", ""), "/?format=table&order=title&q=rating%3A5"},
+		{"toggled off to empty", form("0", "rating:5"), "/?format=table&order=title"},
+		{"bad index is dropped", form("9", "alice"), "/?format=table&order=title&q=alice"},
+		{"negative index", form("-1", "alice"), "/?format=table&order=title&q=alice"},
+		{"not a number", form("x", "alice"), "/?format=table&order=title&q=alice"},
+	}
+	for _, tt := range tests {
+		if got := srv.quickFilterRedirect(tt.form); got != tt.want {
+			t.Errorf("%s: redirect = %q, want %q", tt.name, got, tt.want)
+		}
+	}
+}
+
 func TestQuickFilterBadgeEscapes(t *testing.T) {
 	got := string(QuickFilter{Label: `<b>&`, Href: `/?a=1&q="x"`}.Badge())
-	want := `<a class="badge bg-primary text-decoration-none" href="/?a=1&amp;q=&#34;x&#34;">&lt;b&gt;&amp;</a>`
+	want := `<a class="badge bg-primary text-decoration-none" href="/?a=1&amp;q=&#34;x&#34;" data-quick-filter="0">&lt;b&gt;&amp;</a>`
 	if got != want {
 		t.Errorf("Badge = %s\nwant    %s", got, want)
 	}
 
-	got = string(QuickFilter{Label: `<b>`, Href: `/?a=1&b=2`, Active: true}.Badge())
-	want = `<a class="badge bg-success text-decoration-none" href="/?a=1&amp;b=2" title="Remove this filter">&lt;b&gt; <i class="fa-solid fa-xmark"></i></a>`
+	got = string(QuickFilter{Label: `<b>`, Href: `/?a=1&b=2`, Active: true, Index: 3}.Badge())
+	want = `<a class="badge bg-success text-decoration-none" href="/?a=1&amp;b=2" data-quick-filter="3" title="Remove this filter">&lt;b&gt; <i class="fa-solid fa-xmark"></i></a>`
 	if got != want {
 		t.Errorf("active Badge = %s\nwant           %s", got, want)
 	}

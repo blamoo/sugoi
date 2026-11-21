@@ -178,6 +178,21 @@ $(document).ready(function (e) {
     $(document.body).on('click', '[data-marks-sub]', function (e) {
         thingChangeMark(this.dataset.marksSub, 'sub');
     });
+
+    // Quick filter badges link to the search the page was loaded with. A
+    // plain click submits the search form instead, so the filter also keeps
+    // what was typed in the search box; the server applies it (?qf=) and
+    // redirects. Modified clicks (new tab...) follow the link.
+    $(document.body).on('click', '[data-quick-filter]', function (e) {
+        var form = this.closest('form');
+        if (!form || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
+            return;
+        }
+        e.preventDefault();
+        $(form).find('input[name=qf]').remove();
+        $('<input type="hidden" name="qf">').val(this.dataset.quickFilter).appendTo(form);
+        form.submit();
+    });
 });
 
 function loadingAlert() {

@@ -68,6 +68,12 @@ func (srv *Server) routeRoot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.ParseForm()
+	if target := srv.quickFilterRedirect(r.Form); target != "" {
+		http.Redirect(w, r, target, http.StatusFound)
+		return
+	}
+
 	data := struct {
 		Title          string
 		Things         []*Thing

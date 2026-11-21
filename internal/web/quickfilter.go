@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/blamoo/sugoi/internal/config"
@@ -139,48 +140,76 @@ func (rule quickFilterRule) unapply(q string) string {
 	return search.JoinClauses(kept)
 }
 
+// toggle returns q with the filter applied, or removed if it is already
+// active, and whether it was active.
+func (rule quickFilterRule) toggle(q string) (string, bool) {
+	if rule.isActive(q) {
+		return rule.unapply(q), true
+	}
+	return rule.apply(q), false
+}
+
 // QuickFilter is a quick filter badge ready to render. Active filters are
-// already in the search, and their link removes them.
+// already in the search, and their link removes them. Index is the filter's
+// position in the config, sent back as ?qf= (see quickFilterRedirect).
 type QuickFilter struct {
 	Label  string
 	Href   string
 	Active bool
+	Index  int
+}
+
+// quickFilterUrl is the home page URL for the search in form with q
+// replaced, dropping the paging, random and quick filter parameters.
+func quickFilterUrl(form url.Values, q string) string {
+	params := url.Values{}
+	for k, v := range form {
+		switch k {
+		case "page", "random", "refresh", "q", "qf":
+		default:
+			params[k] = v
+		}
+	}
+	if q != "" {
+		params.Set("q", q)
+	}
+	u := url.URL{Path: "/", RawQuery: params.Encode()}
+	return u.String()
 }
 
 // quickFilters builds the badges for the home page, each linking to the
 // current search (form) with that filter applied, or removed if active.
 func (srv *Server) quickFilters(form url.Values) []QuickFilter {
-	params := url.Values{}
-	for k, v := range form {
-		switch k {
-		case "page", "random", "refresh", "q":
-		default:
-			params[k] = v
-		}
-	}
 	q := form.Get("q")
-
 	ret := make([]QuickFilter, 0, len(srv.quickFilterRules))
-	for _, rule := range srv.quickFilterRules {
-		active := rule.isActive(q)
-		newQ := rule.apply(q)
-		if active {
-			newQ = rule.unapply(q)
-		}
-		if newQ != "" {
-			params.Set("q", newQ)
-		} else {
-			params.Del("q")
-		}
-		u := url.URL{Path: "/", RawQuery: params.Encode()}
-		ret = append(ret, QuickFilter{Label: rule.label, Href: u.String(), Active: active})
+	for i, rule := range srv.quickFilterRules {
+		newQ, active := rule.toggle(q)
+		ret = append(ret, QuickFilter{Label: rule.label, Href: quickFilterUrl(form, newQ), Active: active, Index: i})
 	}
 	return ret
 }
 
-func (t QuickFilter) Badge() template.HTML {
-	if t.Active {
-		return template.HTML(fmt.Sprintf(`<a class="badge bg-success text-decoration-none" href="%s" title="Remove this filter">%s <i class="fa-solid fa-xmark"></i></a>`, html.EscapeString(t.Href), html.EscapeString(t.Label)))
+// quickFilterRedirect handles ?qf=<index>, sent by the search form when a
+// badge is clicked so the filter applies to the text typed in the search box
+// (the badge links only know the search the page was loaded with). It
+// returns the URL with the filter toggled, or "" if there is no valid qf.
+func (srv *Server) quickFilterRedirect(form url.Values) string {
+	qf := form.Get("qf")
+	if qf == "" {
+		return ""
 	}
-	return template.HTML(fmt.Sprintf(`<a class="badge bg-primary text-decoration-none" href="%s">%s</a>`, html.EscapeString(t.Href), html.EscapeString(t.Label)))
+	i, err := strconv.Atoi(qf)
+	if err != nil || i < 0 || i >= len(srv.quickFilterRules) {
+		return quickFilterUrl(form, form.Get("q")) // drop the bad qf
+	}
+	newQ, _ := srv.quickFilterRules[i].toggle(form.Get("q"))
+	return quickFilterUrl(form, newQ)
+}
+
+func (t QuickFilter) Badge() template.HTML {
+	href, label := html.EscapeString(t.Href), html.EscapeString(t.Label)
+	if t.Active {
+		return template.HTML(fmt.Sprintf(`<a class="badge bg-success text-decoration-none" href="%s" data-quick-filter="%d" title="Remove this filter">%s <i class="fa-solid fa-xmark"></i></a>`, href, t.Index, label))
+	}
+	return template.HTML(fmt.Sprintf(`<a class="badge bg-primary text-decoration-none" href="%s" data-quick-filter="%d">%s</a>`, href, t.Index, label))
 }
