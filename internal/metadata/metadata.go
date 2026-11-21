@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/blamoo/sugoi/internal/fsutil"
@@ -119,7 +120,12 @@ func (ret *Static) ApplyForm(form url.Values) error {
 			ret.Description = form.Get(key)
 
 		case "created_at":
-			err := ret.CreatedAt.UnmarshalText([]byte(form.Get(key)))
+			v := strings.TrimSpace(form.Get(key))
+			if v == "" { // cleared in the form
+				ret.CreatedAt = time.Time{}
+				break
+			}
+			err := ret.CreatedAt.UnmarshalText([]byte(v))
 			if err != nil {
 				return err
 			}

@@ -354,6 +354,12 @@ func TestWrites(t *testing.T) {
 		t.Errorf("marks = %d, want 1", marks.Marks)
 	}
 
+	marks.Marks = -1
+	decodeJSON(t, ts.get(thing+"/addMark.json"), &marks)
+	if marks.Marks != 1 {
+		t.Errorf("GET addMark = %d marks, want 1", marks.Marks)
+	}
+
 	var count int
 	decodeJSON(t, ts.post("/thing/pushRead/"+ts.hash, nil), &count)
 	if count != 1 {

@@ -188,7 +188,7 @@ func (t *Thing) UrlButtons() []template.HTML {
 			title = "Schale"
 		} else if strings.HasPrefix(url, "https://hentainexus.com/") {
 			img = `<img class="source-icon" src="/static/source-icons/hentainexus.png" alt="HentaiNexus" />`
-			title = "Schale"
+			title = "HentaiNexus"
 		} else if strings.HasPrefix(url, "https://www.fakku.net/") {
 			img = `<img class="source-icon" src="/static/source-icons/fakku.png" alt="Fakku" />`
 			title = "Fakku"
@@ -277,7 +277,7 @@ func (t *Thing) UpdatedAtRelative() string {
 		return "-"
 	}
 
-	return fmt.Sprintf("%s (%s)", t.UpdatedAt.Format("02/01/2006 03:04"), RelativeTime(t.UpdatedAt))
+	return fmt.Sprintf("%s (%s)", t.UpdatedAt.Format("02/01/2006 15:04"), RelativeTime(t.UpdatedAt))
 }
 
 func (t *Thing) SearchTags() []SearchTerm {

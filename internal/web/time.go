@@ -2,55 +2,54 @@ package web
 
 import (
 	"fmt"
-	"math"
 	"time"
 )
 
-func RelativeTime(t time.Time) string {
-	now := float64(time.Now().Unix())
-	dt := float64(t.Unix())
+const (
+	day   = 24 * time.Hour
+	month = 30 * day
+	year  = 12 * month
+)
 
-	diff := now - dt
+var durationUnits = []struct {
+	size time.Duration
+	name string
+}{
+	{year, "year"},
+	{month, "month"},
+	{day, "day"},
+	{time.Hour, "hour"},
+	{time.Minute, "minute"},
+	{time.Second, "second"},
+}
 
-	var num float64
-	var sc string
-
-	if diff < (60 * 60) {
-		num = math.Floor(diff / (60))
-		if num == 1 {
-			sc = "minute"
-		} else {
-			sc = "minutes"
-		}
-	} else if diff < (60 * 60 * 24) {
-		num = math.Floor(diff / (60 * 60))
-		if num == 1 {
-			sc = "hour"
-		} else {
-			sc = "hours"
-		}
-	} else if diff < (60 * 60 * 24 * 30) {
-		num = math.Floor(diff / (60 * 60 * 24))
-		if num == 1 {
-			sc = "day"
-		} else {
-			sc = "days"
-		}
-	} else if diff < (60 * 60 * 24 * 30 * 12) {
-		num = math.Floor(diff / (60 * 60 * 24 * 30))
-		if num == 1 {
-			sc = "month"
-		} else {
-			sc = "months"
-		}
-	} else {
-		num = math.Floor(diff / (60 * 60 * 24 * 30 * 12))
-		if num == 1 {
-			sc = "year"
-		} else {
-			sc = "years"
+// DurationFormat formats d in its largest whole unit, rounded down: "1 hour",
+// "3 days" (a month is 30 days, a year 12 months). Negative durations count
+// as zero.
+func DurationFormat(d time.Duration) string {
+	d = max(d, 0)
+	for _, u := range durationUnits {
+		if d >= u.size || u.size == time.Second {
+			n := int64(d / u.size)
+			if n == 1 {
+				return fmt.Sprintf("%d %s", n, u.name)
+			}
+			return fmt.Sprintf("%d %ss", n, u.name)
 		}
 	}
+	panic("unreachable")
+}
 
-	return fmt.Sprintf("%d %s ago", int64(num), sc)
+// RelativeTime formats how long ago t was, like "3 days ago". A time in the
+// future (clock skew between machines) shows as "just now".
+func RelativeTime(t time.Time) string {
+	return relativeTime(t, time.Now())
+}
+
+func relativeTime(t, now time.Time) string {
+	d := now.Sub(t)
+	if d < time.Minute {
+		return "just now"
+	}
+	return DurationFormat(d) + " ago"
 }

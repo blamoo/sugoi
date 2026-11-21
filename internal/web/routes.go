@@ -693,7 +693,7 @@ func (srv *Server) routeThingAddMark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodGet {
-		json.NewEncoder(w).Encode(struct{ Rating int }{thing.Rating})
+		json.NewEncoder(w).Encode(struct{ Marks int }{thing.Marks})
 		return
 	}
 
@@ -745,7 +745,7 @@ func (srv *Server) routeThingSubMark(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == http.MethodGet {
-		json.NewEncoder(w).Encode(struct{ Rating int }{thing.Rating})
+		json.NewEncoder(w).Encode(struct{ Marks int }{thing.Marks})
 		return
 	}
 

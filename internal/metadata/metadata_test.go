@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestApplyFormKeepsFieldsNotInTheForm(t *testing.T) {
@@ -51,6 +52,45 @@ func TestApplyFormKeepsFieldsNotInTheForm(t *testing.T) {
 	if !reflect.DeepEqual(meta.Id, []int{123}) || meta.IdSource[0] != "/item/123/abc" ||
 		meta.Circle[0] != "Circle X" || meta.Thumbnail != 2 || meta.Pages != 30 || len(meta.Files) != 2 {
 		t.Errorf("fields outside the form changed: %+v", meta)
+	}
+}
+
+func TestApplyFormEveryField(t *testing.T) {
+	meta := Static{CreatedAt: time.Date(2005, 4, 1, 0, 0, 0, 0, time.UTC)}
+	form := url.Values{
+		"language":      {"english"},
+		"artistText":    {"Alice\nBob"},
+		"magazineText":  {"Monthly"},
+		"publisherText": {"Press"},
+		"collection":    {"Col"},
+		"parodyText":    {"Original"},
+		"title":         {"Title"},
+		"description":   {"Some text"},
+		"created_at":    {" "}, // cleared: zero time, not an error
+		"tagsText":      {"a\n\nb"},
+		"urlsText":      {"https://example.com/1\nhttps://example.com/2"},
+		"seriesText":    {"Saga"},
+		"unknown":       {"ignored"},
+	}
+	if err := meta.ApplyForm(form); err != nil {
+		t.Fatal(err)
+	}
+
+	want := Static{
+		Language:    "english",
+		Artist:      StringArray{"Alice", "Bob"},
+		Magazine:    StringArray{"Monthly"},
+		Publisher:   StringArray{"Press"},
+		Collection:  "Col",
+		Parody:      StringArray{"Original"},
+		Title:       "Title",
+		Description: "Some text",
+		Tags:        StringArray{"a", "b"},
+		Urls:        StringArray{"https://example.com/1", "https://example.com/2"},
+		Series:      StringArray{"Saga"},
+	}
+	if !reflect.DeepEqual(meta, want) {
+		t.Errorf("ApplyForm =\n%+v\nwant\n%+v", meta, want)
 	}
 }
 
