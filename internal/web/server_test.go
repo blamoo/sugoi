@@ -279,6 +279,11 @@ func TestPages(t *testing.T) {
 		expectBody(t, rec, `<option value="" selected >Score</option>`)
 		rec = ts.get("/?order=-title")
 		expectBody(t, rec, `<option value="-title" selected >Title desc</option>`)
+		// what is sent to Bleve: the lowercased copy and the tie-break
+		rec = ts.get("/?order=-title&debug=query")
+		expectBody(t, rec, `"sort":["-title_sort","_id"]`)
+		rec = ts.get("/?order=bogus&debug=query")
+		expectBody(t, rec, `"sort":["-_score","_id"]`)
 
 		for _, format := range []string{"covers", "table", "full"} {
 			rec := ts.get("/?format=" + format)

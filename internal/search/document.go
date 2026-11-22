@@ -3,6 +3,7 @@ package search
 import (
 	"math/rand/v2"
 	"strconv"
+	"strings"
 
 	"github.com/blamoo/sugoi/internal/metadata"
 )
@@ -20,11 +21,20 @@ type Keywords struct {
 	MagazineKw   metadata.StringArray `json:"magazine_kw"`
 }
 
+// SortKeys are lowercased, untokenized copies of text fields to sort by.
+// Sorting by an analyzed field sorts by its word tokens, not the whole value
+// ("Col Zulu" vs "Col Banana" compare by whichever token Bleve picks).
+type SortKeys struct {
+	TitleSort      string `json:"title_sort"`
+	CollectionSort string `json:"collection_sort"`
+}
+
 // Document is what gets indexed for one item.
 type Document struct {
 	metadata.Static
 	metadata.Dynamic
 	Keywords
+	SortKeys
 	Random map[string]int       `json:"random,omitempty"`
 	Url    metadata.StringArray `json:"url,omitempty"`
 }
@@ -46,6 +56,9 @@ func NewDocument(static metadata.Static, dynamic metadata.Dynamic) Document {
 	doc.ArtistKw = doc.Artist
 	doc.ParodyKw = doc.Parody
 	doc.MagazineKw = doc.Magazine
+
+	doc.TitleSort = strings.ToLower(doc.Title)
+	doc.CollectionSort = strings.ToLower(doc.Collection)
 
 	return doc
 }

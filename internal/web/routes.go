@@ -105,8 +105,10 @@ func (srv *Server) routeRoot(w http.ResponseWriter, r *http.Request) {
 
 	data.Order = r.FormValue("order")
 
-	if _, ok := orderFields.Find(data.Order); !ok {
+	order, ok := orderFields.Find(data.Order)
+	if !ok {
 		data.Order = "" // like no order: by score, as the select then shows
+		order, _ = orderFields.Find("")
 	}
 	data.Search = r.FormValue("q")
 
@@ -207,9 +209,7 @@ func (srv *Server) routeRoot(w http.ResponseWriter, r *http.Request) {
 		searchReq.Fields = []string{"ID"}
 	}
 
-	if data.Order != "" {
-		searchReq.SortBy([]string{data.Order})
-	}
+	searchReq.SortBy(order.Sort)
 
 	if fDebug == "query" {
 		w.Header().Set("Content-Type", "application/json")

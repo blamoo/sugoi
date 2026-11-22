@@ -67,5 +67,12 @@ func BuildMapping() *mapping.IndexMappingImpl {
 		thingMapping.AddFieldMappingsAt(name+"_kw", keywordMapping)
 	}
 
+	// SortKeys: only sorted by, so kept out of _all and not stored.
+	sortMapping := bleve.NewKeywordFieldMapping()
+	sortMapping.IncludeInAll = false
+	sortMapping.Store = false
+	thingMapping.AddFieldMappingsAt("title_sort", sortMapping)
+	thingMapping.AddFieldMappingsAt("collection_sort", sortMapping)
+
 	return indexMapping
 }
