@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -314,6 +315,17 @@ func TestPages(t *testing.T) {
 
 		expectStatus(t, ts.get("/thing/details/0000"), http.StatusBadRequest)
 		expectStatus(t, ts.get("/static/main.css"), http.StatusOK)
+
+		// assets are linked with their version and cached for good with it
+		m := regexp.MustCompile(`src="(/static/main\.js\?v=[0-9a-f]{12})"`).FindStringSubmatch(ts.get("/").Body.String())
+		if m == nil {
+			t.Fatal("main.js isn't linked with a version")
+		}
+		rec = ts.get(m[1])
+		expectStatus(t, rec, http.StatusOK)
+		if cc := rec.Header().Get("Cache-Control"); !strings.Contains(cc, "immutable") {
+			t.Errorf("versioned asset Cache-Control = %q", cc)
+		}
 		expectStatus(t, ts.get("/favicon.ico"), http.StatusOK)
 
 		rec = ts.get("/?random=1")

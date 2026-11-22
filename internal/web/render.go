@@ -2,7 +2,6 @@ package web
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -11,11 +10,9 @@ import (
 )
 
 // templateFuncs must not depend on the request: in non-debug mode templates
-// are parsed once and shared by every request.
+// are parsed once and shared by every request. "asset" is added per server
+// in parseTemplates (it needs the static directory).
 var templateFuncs = template.FuncMap{
-	"asset": func(attrn string, filePath string) template.HTMLAttr {
-		return template.HTMLAttr(fmt.Sprintf(`%s="%s"`, attrn, html.EscapeString(filePath)))
-	},
 	"noescape": func(str string) template.HTML {
 		return template.HTML(str)
 	},
@@ -32,7 +29,8 @@ var templateFuncs = template.FuncMap{
 }
 
 func (srv *Server) parseTemplates() (*template.Template, error) {
-	tmpl, err := template.New("").Funcs(templateFuncs).ParseGlob(filepath.Join(srv.assetsDir, "templates", "*.gohtml"))
+	funcs := template.FuncMap{"asset": srv.assets.attr}
+	tmpl, err := template.New("").Funcs(templateFuncs).Funcs(funcs).ParseGlob(filepath.Join(srv.assetsDir, "templates", "*.gohtml"))
 	if err != nil {
 		return nil, err
 	}

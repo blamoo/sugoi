@@ -26,6 +26,7 @@ type Server struct {
 	sessions *sessions.CookieStore
 
 	quickFilterRules []quickFilterRule
+	assets           *assetVersions
 
 	// basicAuthOk remembers credentials that already passed bcrypt (see
 	// checkPasswordHashCached).
@@ -40,6 +41,7 @@ type Server struct {
 func NewServer(cfg *config.Config, cat *catalog.Catalog, assetsDir string) *Server {
 	srv := &Server{cfg: cfg, cat: cat, assetsDir: assetsDir}
 	srv.quickFilterRules = newQuickFilterRules(cfg.QuickFilters)
+	srv.assets = newAssetVersions(filepath.Join(assetsDir, "static"))
 
 	srv.sessions = sessions.NewCookieStore(cfg.SessionCookieKey)
 	srv.sessions.Options.Secure = false
@@ -66,8 +68,7 @@ func (srv *Server) Handler() http.Handler {
 
 	srv.routes(router)
 
-	static := http.FileServer(http.Dir(filepath.Join(srv.assetsDir, "static")))
-	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", static))
+	router.PathPrefix("/static/").Handler(srv.assets.handler())
 
 	return router
 }
